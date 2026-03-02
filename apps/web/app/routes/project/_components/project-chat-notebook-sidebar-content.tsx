@@ -292,7 +292,7 @@ export function ProjectChatNotebookSidebarContent() {
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
-      <div className="flex flex-col">
+      <div className="flex flex-col group-data-[collapsible=icon]:hidden">
         <SidebarConversationHistory
           conversations={mappedConversations}
           isLoading={isProjectLoading || isLoadingConversations}

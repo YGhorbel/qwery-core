@@ -398,7 +398,7 @@ export function SidebarConversationHistory({
           </CollapsibleTrigger>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden data-[state=closed]:duration-200 data-[state=open]:duration-200">
             <SidebarGroupContent className="min-h-0">
-              <LoadingSkeleton variant="sidebar" count={5} />
+              <LoadingSkeleton variant="sidebar" count={3} />
             </SidebarGroupContent>
           </CollapsibleContent>
         </Collapsible>
@@ -1339,9 +1339,9 @@ export function SidebarNotebookHistory({
               </div>
             </SidebarGroupLabel>
           </CollapsibleTrigger>
-          <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-            <SidebarGroupContent>
-              <LoadingSkeleton variant="sidebar" count={5} />
+          <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden data-[state=closed]:duration-200 data-[state=open]:duration-200">
+            <SidebarGroupContent className="min-h-0">
+              <LoadingSkeleton variant="sidebar" count={3} />
             </SidebarGroupContent>
           </CollapsibleContent>
         </Collapsible>

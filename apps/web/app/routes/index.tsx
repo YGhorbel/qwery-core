@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { useNavigate } from 'react-router';
 import { Skeleton } from '@qwery/ui/skeleton';
+import { LoadingSkeleton } from '@qwery/ui/loading-skeleton';
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@qwery/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
 import { LogoImage } from '~/components/app-logo';
 
 import { useWorkspace } from '~/lib/context/workspace-context';
@@ -23,86 +25,63 @@ function SidebarSkeleton() {
   return (
     <Sidebar
       collapsible="none"
-      className="w-[18rem] max-w-[18rem] min-w-[18rem]"
+      className="w-(--sidebar-width,18rem) max-w-(--sidebar-width,18rem) min-w-0 border-r"
     >
-      <SidebarContent className="overflow-hidden p-4">
-        {/* Navigation items skeleton */}
+      <SidebarContent className="overflow-hidden px-3">
+        <div className="mt-2">
+          <Skeleton className="h-10 w-full rounded-md" />
+        </div>
         <SidebarGroup>
           <SidebarGroupContent>
-            <div className="space-y-1">
-              <Skeleton className="h-9 w-full rounded-md" />
-              <Skeleton className="h-9 w-full rounded-md" />
-              <Skeleton className="h-9 w-full rounded-md" />
+            <div className="flex min-w-0 flex-col gap-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-8 w-full rounded-md"
+                  data-sidebar="menu-skeleton"
+                />
+              ))}
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Search Bar skeleton */}
-        <SidebarGroup>
+        <SidebarGroup className="min-w-0 overflow-hidden py-0">
           <SidebarGroupContent>
             <Skeleton className="h-9 w-full rounded-md" />
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Conversation History skeleton */}
-        <SidebarGroup className="min-w-0 overflow-hidden">
-          <Collapsible open={true}>
+        <SidebarGroup className="min-w-0 overflow-hidden py-0">
+          <Collapsible defaultOpen>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="hover:bg-sidebar-accent -mx-2 my-1 cursor-pointer rounded-md px-2 py-1.5">
+              <SidebarGroupLabel className="hover:bg-sidebar-accent -mx-2 cursor-pointer rounded-md px-2 py-1">
                 <div className="flex w-full items-center justify-between">
                   <span>Recent chats</span>
-                  <Skeleton className="h-4 w-4 rounded" />
+                  <ChevronRight className="size-4 transition-transform duration-200" />
                 </div>
               </SidebarGroupLabel>
             </CollapsibleTrigger>
             <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden data-[state=closed]:duration-200 data-[state=open]:duration-200">
-              <SidebarGroupContent className="relative min-h-0 overflow-hidden">
-                <div className="space-y-1">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5"
-                    >
-                      <Skeleton className="h-4 w-4 shrink-0 rounded" />
-                      <Skeleton className="h-4 flex-1" />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Skeleton className="border-border/50 h-8 w-full rounded-md border" />
-                </div>
+              <SidebarGroupContent className="min-h-0">
+                <LoadingSkeleton variant="sidebar" count={3} />
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
 
-        {/* Notebook History skeleton */}
-        <SidebarGroup className="min-w-0 overflow-hidden">
-          <Collapsible open={true}>
+        <SidebarGroup className="min-w-0 overflow-hidden py-0">
+          <Collapsible defaultOpen>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="hover:bg-sidebar-accent -mx-2 my-1 cursor-pointer rounded-md px-2 py-1.5">
+              <SidebarGroupLabel className="hover:bg-sidebar-accent -mx-2 cursor-pointer rounded-md px-2 py-1">
                 <div className="flex w-full items-center justify-between">
                   <span>Recent notebooks</span>
-                  <Skeleton className="h-4 w-4 rounded" />
+                  <ChevronRight className="size-4 transition-transform duration-200" />
                 </div>
               </SidebarGroupLabel>
             </CollapsibleTrigger>
             <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden data-[state=closed]:duration-200 data-[state=open]:duration-200">
-              <SidebarGroupContent className="relative min-h-0 overflow-hidden">
-                <div className="space-y-1">
-                  {Array.from({ length: 2 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5"
-                    >
-                      <Skeleton className="h-4 w-4 shrink-0 rounded" />
-                      <Skeleton className="h-4 flex-1" />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Skeleton className="border-border/50 h-8 w-full rounded-md border" />
-                </div>
+              <SidebarGroupContent className="min-h-0">
+                <LoadingSkeleton variant="sidebar" count={3} />
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>

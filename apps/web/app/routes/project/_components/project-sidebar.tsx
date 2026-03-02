@@ -86,14 +86,14 @@ export function ProjectSidebar() {
       >
         <div
           className={cn(
-            'flex items-center gap-2 transition-opacity duration-200',
-            'group-data-[collapsible=icon]:group/logoarea group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:cursor-pointer',
+            'flex size-9 shrink-0 items-center justify-center transition-opacity duration-200',
+            'group-data-[collapsible=icon]:group/logoarea group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:cursor-pointer',
           )}
         >
           <AppLogo
             className={cn(
               'h-6 w-6 shrink-0 transition-opacity duration-200',
-              'group-data-[collapsible=icon]:group-hover/logoarea:opacity-0',
+              'group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:z-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-0',
               isExpandingClick && 'opacity-0',
             )}
           />
@@ -102,7 +102,7 @@ export function ProjectSidebar() {
             size="icon"
             className={cn(
               'hidden h-7 w-7 shrink-0 rounded-md transition-opacity duration-200',
-              'group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:inset-0 group-data-[collapsible=icon]:z-10 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-100',
+              'group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:inset-0 group-data-[collapsible=icon]:z-10 group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-100',
               isExpandingClick && 'opacity-100',
             )}
             onClick={handleExpandClick}
