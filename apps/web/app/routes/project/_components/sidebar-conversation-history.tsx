@@ -456,7 +456,7 @@ export function SidebarConversationHistory({
                       return (
                         <SidebarMenuItem
                           key={conversation.id}
-                          className="group"
+                          className="group/row"
                         >
                           <ContextMenu>
                             <ContextMenuTrigger asChild>
@@ -468,7 +468,7 @@ export function SidebarConversationHistory({
                                 >
                                   <Link
                                     to={conversationPath}
-                                    className="group flex w-full min-w-0 items-center gap-2"
+                                    className="flex w-full min-w-0 items-center gap-2"
                                   >
                                     {isEditing ? (
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -536,7 +536,7 @@ export function SidebarConversationHistory({
                                         <div className="relative shrink-0">
                                           {processingConversationSlug ===
                                           conversation.slug ? (
-                                            <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover:opacity-0" />
+                                            <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover/row:opacity-0" />
                                           ) : null}
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -544,7 +544,7 @@ export function SidebarConversationHistory({
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover/row:opacity-100"
                                               >
                                                 <MoreHorizontal className="size-4" />
                                               </button>
@@ -620,16 +620,24 @@ export function SidebarConversationHistory({
                                 <Pencil className="mr-2 size-4" />
                                 <Trans i18nKey="common:sidebar.rename" />
                               </ContextMenuItem>
-                              {onConversationBookmark && (
-                                <ContextMenuItem
-                                  onClick={() =>
-                                    onConversationBookmark(conversation.id)
-                                  }
-                                >
-                                  <Bookmark className="mr-2 size-4" />
-                                  Bookmark
-                                </ContextMenuItem>
-                              )}
+                              <ContextMenuItem
+                                onClick={() =>
+                                  handleBookmark(conversation.id)
+                                }
+                              >
+                                <Bookmark
+                                  className={cn(
+                                    'mr-2 size-4',
+                                    bookmarkedIdsSet.has(conversation.id) &&
+                                      'fill-current',
+                                  )}
+                                />
+                                {bookmarkedIdsSet.has(conversation.id) ? (
+                                  <Trans i18nKey="common:sidebar.unpin" />
+                                ) : (
+                                  <Trans i18nKey="common:sidebar.pinChat" />
+                                )}
+                              </ContextMenuItem>
                               {onConversationDuplicate && (
                                 <ContextMenuItem
                                   onClick={() =>
@@ -668,7 +676,7 @@ export function SidebarConversationHistory({
 
                     {/* Current Conversation - Show in second place if not pinned */}
                     {currentConversation && !currentConversationIsPinned && (
-                      <SidebarMenuItem>
+                      <SidebarMenuItem className="group/row">
                         <ContextMenu>
                           <ContextMenuTrigger asChild>
                             <div className="w-full">
@@ -682,7 +690,7 @@ export function SidebarConversationHistory({
                                     pathsConfig.app.conversation,
                                     currentConversation.slug,
                                   )}
-                                  className="group flex w-full min-w-0 items-center gap-2"
+                                  className="flex w-full min-w-0 items-center gap-2"
                                 >
                                   {editingId === currentConversation.id ? (
                                     <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -745,17 +753,12 @@ export function SidebarConversationHistory({
                                           currentConversation.title,
                                         )}
                                       </span>
-                                      <span className="text-muted-foreground shrink-0 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
-                                        {formatTimeAgo(
-                                          currentConversation.createdAt,
-                                        )}
-                                      </span>
                                       <div className="relative shrink-0">
                                         {processingConversationSlug ===
                                         currentConversation.slug ? (
-                                          <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover:opacity-0" />
+                                          <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover/row:opacity-0" />
                                         ) : (
-                                          <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover:opacity-0" />
+                                          <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover/row:opacity-0" />
                                         )}
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
@@ -763,7 +766,7 @@ export function SidebarConversationHistory({
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+                                              className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover/row:opacity-100"
                                             >
                                               <MoreHorizontal className="size-4" />
                                             </button>
@@ -788,8 +791,6 @@ export function SidebarConversationHistory({
                                                   currentConversation.id,
                                                 );
                                               }}
-                                              disabled
-                                              className="cursor-not-allowed opacity-50"
                                             >
                                               <Bookmark
                                                 className={cn(
@@ -841,16 +842,27 @@ export function SidebarConversationHistory({
                               <Pencil className="mr-2 size-4" />
                               <Trans i18nKey="common:sidebar.rename" />
                             </ContextMenuItem>
-                            {onConversationBookmark && (
-                              <ContextMenuItem
-                                onClick={() =>
-                                  onConversationBookmark(currentConversation.id)
-                                }
-                              >
-                                <Bookmark className="mr-2 size-4" />
-                                <Trans i18nKey="common:sidebar.bookmark" />
-                              </ContextMenuItem>
-                            )}
+                            <ContextMenuItem
+                              onClick={() =>
+                                handleBookmark(currentConversation.id)
+                              }
+                            >
+                              <Bookmark
+                                className={cn(
+                                  'mr-2 size-4',
+                                  bookmarkedIdsSet.has(
+                                    currentConversation.id,
+                                  ) && 'fill-current',
+                                )}
+                              />
+                              {bookmarkedIdsSet.has(
+                                currentConversation.id,
+                              ) ? (
+                                <Trans i18nKey="common:sidebar.unpin" />
+                              ) : (
+                                <Trans i18nKey="common:sidebar.pinChat" />
+                              )}
+                            </ContextMenuItem>
                             {onConversationDuplicate && (
                               <ContextMenuItem
                                 onClick={() =>
@@ -900,7 +912,7 @@ export function SidebarConversationHistory({
                       return (
                         <SidebarMenuItem
                           key={conversation.id}
-                          className="group"
+                          className="group/row"
                         >
                           <ContextMenu>
                             <ContextMenuTrigger asChild>
@@ -912,7 +924,7 @@ export function SidebarConversationHistory({
                                 >
                                   <Link
                                     to={conversationPath}
-                                    className="group flex w-full min-w-0 items-center gap-2"
+                                    className="flex w-full min-w-0 items-center gap-2"
                                   >
                                     {isEditing ? (
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -977,15 +989,10 @@ export function SidebarConversationHistory({
                                             conversation.title,
                                           )}
                                         </span>
-                                        <span className="text-muted-foreground shrink-0 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
-                                          {formatTimeAgo(
-                                            conversation.createdAt,
-                                          )}
-                                        </span>
                                         <div className="relative shrink-0">
                                           {processingConversationSlug ===
                                           conversation.slug ? (
-                                            <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover:opacity-0" />
+                                            <div className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500 shadow-sm shadow-blue-500/50 transition-opacity group-hover/row:opacity-0" />
                                           ) : null}
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -993,7 +1000,7 @@ export function SidebarConversationHistory({
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover/row:opacity-100"
                                               >
                                                 <MoreHorizontal className="size-4" />
                                               </button>
@@ -1018,8 +1025,6 @@ export function SidebarConversationHistory({
                                                     conversation.id,
                                                   );
                                                 }}
-                                                disabled
-                                                className="cursor-not-allowed opacity-50"
                                               >
                                                 <Bookmark
                                                   className={cn(
@@ -1071,16 +1076,24 @@ export function SidebarConversationHistory({
                                 <Pencil className="mr-2 size-4" />
                                 <Trans i18nKey="common:sidebar.rename" />
                               </ContextMenuItem>
-                              {onConversationBookmark && (
-                                <ContextMenuItem
-                                  onClick={() =>
-                                    onConversationBookmark(conversation.id)
-                                  }
-                                >
-                                  <Bookmark className="mr-2 size-4" />
-                                  Bookmark
-                                </ContextMenuItem>
-                              )}
+                              <ContextMenuItem
+                                onClick={() =>
+                                  handleBookmark(conversation.id)
+                                }
+                              >
+                                <Bookmark
+                                  className={cn(
+                                    'mr-2 size-4',
+                                    bookmarkedIdsSet.has(conversation.id) &&
+                                      'fill-current',
+                                  )}
+                                />
+                                {bookmarkedIdsSet.has(conversation.id) ? (
+                                  <Trans i18nKey="common:sidebar.unpin" />
+                                ) : (
+                                  <Trans i18nKey="common:sidebar.pinChat" />
+                                )}
+                              </ContextMenuItem>
                               {onConversationDuplicate && (
                                 <ContextMenuItem
                                   onClick={() =>
@@ -1389,7 +1402,7 @@ export function SidebarNotebookHistory({
 
                   <SidebarMenu className="pb-12">
                     {currentNotebook && (
-                      <SidebarMenuItem>
+                      <SidebarMenuItem className="group/row">
                         <ContextMenu>
                           <ContextMenuTrigger asChild>
                             <div className="w-full">
@@ -1403,7 +1416,7 @@ export function SidebarNotebookHistory({
                                     pathsConfig.app.projectNotebook,
                                     currentNotebook.slug,
                                   )}
-                                  className="group flex w-full min-w-0 items-center gap-2"
+                                  className="flex w-full min-w-0 items-center gap-2"
                                 >
                                   {editingId === currentNotebook.id ? (
                                     <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -1459,11 +1472,6 @@ export function SidebarNotebookHistory({
                                           currentNotebook.title,
                                         )}
                                       </span>
-                                      <span className="text-muted-foreground shrink-0 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
-                                        {formatTimeAgo(
-                                          currentNotebook.updatedAt,
-                                        )}
-                                      </span>
                                       {isProcessing && (
                                         <span
                                           className="size-2 shrink-0 animate-pulse rounded-full border border-blue-500/50 bg-blue-500 shadow-sm shadow-blue-500/50"
@@ -1476,12 +1484,12 @@ export function SidebarNotebookHistory({
                                           currentNotebook.id,
                                         ) ? (
                                           <div
-                                            className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full border border-yellow-500/50 bg-yellow-500 shadow-sm shadow-yellow-500/50 transition-opacity group-hover:opacity-0"
+                                            className="absolute top-1/2 left-1/2 size-2 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full border border-yellow-500/50 bg-yellow-500 shadow-sm shadow-yellow-500/50 transition-opacity group-hover/row:opacity-0"
                                             aria-label="Unsaved changes"
                                             title="Unsaved changes"
                                           />
                                         ) : (
-                                          <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover:opacity-0" />
+                                          <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover/row:opacity-0" />
                                         )}
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
@@ -1489,7 +1497,7 @@ export function SidebarNotebookHistory({
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+                                              className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover/row:opacity-100"
                                             >
                                               <MoreHorizontal className="size-4" />
                                             </button>
@@ -1565,7 +1573,10 @@ export function SidebarNotebookHistory({
                       );
 
                       return (
-                        <SidebarMenuItem key={notebook.id}>
+                        <SidebarMenuItem
+                          key={notebook.id}
+                          className="group/row"
+                        >
                           <ContextMenu>
                             <ContextMenuTrigger asChild>
                               <div className="w-full">
@@ -1576,7 +1587,7 @@ export function SidebarNotebookHistory({
                                 >
                                   <Link
                                     to={notebookPath}
-                                    className="group flex w-full min-w-0 items-center gap-2"
+                                    className="flex w-full min-w-0 items-center gap-2"
                                   >
                                     {isEditing ? (
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -1631,9 +1642,6 @@ export function SidebarNotebookHistory({
                                         >
                                           {truncateChatTitle(notebook.title)}
                                         </span>
-                                        <span className="text-muted-foreground shrink-0 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
-                                          {formatTimeAgo(notebook.updatedAt)}
-                                        </span>
                                         {unsavedNotebookIds.includes(
                                           notebook.id,
                                         ) && (
@@ -1645,7 +1653,7 @@ export function SidebarNotebookHistory({
                                         )}
                                         <div className="relative shrink-0">
                                           {isActive && (
-                                            <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover:opacity-0" />
+                                            <div className="bg-primary absolute top-1/2 left-1/2 size-1.5 shrink-0 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity group-hover/row:opacity-0" />
                                           )}
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -1653,7 +1661,7 @@ export function SidebarNotebookHistory({
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer rounded p-1 opacity-0 transition-all group-hover/row:opacity-100"
                                               >
                                                 <MoreHorizontal className="size-4" />
                                               </button>

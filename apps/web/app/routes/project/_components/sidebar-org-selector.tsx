@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@qwery/ui/dropdown-menu';
 import { Skeleton } from '@qwery/ui/skeleton';
-import { cn } from '@qwery/ui/utils';
+import { cn, truncateText } from '@qwery/ui/utils';
 
 import { useWorkspace } from '~/lib/context/workspace-context';
 import { useProject } from '~/lib/context/project-context';
@@ -82,8 +82,8 @@ export function SidebarOrgSelector() {
                 'group-data-[collapsible=icon]:hidden',
               )}
             >
-              <span className="truncate text-sm font-medium">
-                {currentOrg?.name ?? currentOrg?.slug}
+              <span className="truncate text-sm font-medium" title={currentOrg?.name ?? currentOrg?.slug}>
+                {truncateText(currentOrg?.name ?? currentOrg?.slug ?? '', 28)}
               </span>
               <span className="text-muted-foreground truncate text-xs">
                 {t('sidebar.organization')}
@@ -104,10 +104,11 @@ export function SidebarOrgSelector() {
                 {t('sidebar.organization')}
               </div>
               <div>
-                <span className="block truncate">
-                  {currentOrg?.name ??
-                    currentOrg?.slug ??
-                    t('breadcrumb.loading')}
+                <span className="block truncate" title={currentOrg?.name ?? currentOrg?.slug ?? undefined}>
+                  {truncateText(
+                    currentOrg?.name ?? currentOrg?.slug ?? t('breadcrumb.loading'),
+                    28,
+                  )}
                 </span>
               </div>
             </div>
@@ -125,7 +126,9 @@ export function SidebarOrgSelector() {
                 onClick={() => handleSelect(org.slug)}
               >
                 <Building2 className="text-muted-foreground size-4 shrink-0" />
-                <span className="truncate">{org.name ?? org.slug}</span>
+                <span className="min-w-0 truncate" title={org.name ?? org.slug}>
+                  {truncateText(org.name ?? org.slug, 28)}
+                </span>
               </DropdownMenuItem>
             );
           })}
