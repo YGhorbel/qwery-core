@@ -158,6 +158,8 @@ storybook-static
 apps/desktop/release
 apps/desktop/dist
 apps/desktop/src-tauri/binaries
+apps/desktop/public/extensions/
+apps/desktop/public/extensions.tmp.*/
 
 # macOS
 .DS_Store
