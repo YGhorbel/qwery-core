@@ -102,7 +102,7 @@ export function ProjectSidebar() {
             size="icon"
             className={cn(
               'hidden h-7 w-7 shrink-0 rounded-md transition-opacity duration-200',
-              'group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:inset-0 group-data-[collapsible=icon]:z-10 group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-100',
+              'group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:inset-0 group-data-[collapsible=icon]:z-10 group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-100',
               isExpandingClick && 'opacity-100',
             )}
             onClick={handleExpandClick}

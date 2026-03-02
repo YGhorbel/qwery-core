@@ -240,6 +240,7 @@ export function ProjectChatNotebookSidebarContent() {
         id: notebook.id,
         title: notebook.title,
         slug: notebook.slug,
+        createdAt: notebook.createdAt,
         updatedAt: notebook.updatedAt,
       })),
 

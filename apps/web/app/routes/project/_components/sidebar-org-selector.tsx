@@ -51,7 +51,52 @@ export function SidebarOrgSelector() {
     }
   };
 
-  if (!currentOrg && !organizations.isLoading) return null;
+  if (!currentOrg && !organizations.isLoading) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setShowCreateDialog(true)}
+          aria-label={t('sidebar.createOrganization')}
+          data-test="org-empty-state-create"
+          className={cn(
+            'flex w-full cursor-pointer items-center gap-3 rounded-md p-2 transition-colors',
+            'hover:bg-sidebar-accent active:bg-sidebar-accent/80',
+            'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:px-0',
+          )}
+        >
+          <div
+            className={cn(
+              'bg-sidebar-accent/50 flex size-8 shrink-0 items-center justify-center rounded-md border',
+              'group-data-[collapsible=icon]:size-7',
+            )}
+          >
+            <Building2 className="text-sidebar-foreground/80 size-4 group-data-[collapsible=icon]:size-3.5" />
+          </div>
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 flex-col truncate text-left',
+              'group-data-[collapsible=icon]:hidden',
+            )}
+          >
+            <span className="text-muted-foreground truncate text-sm font-medium">
+              {t('sidebar.noOrganization')}
+            </span>
+            <span className="text-muted-foreground truncate text-xs">
+              {t('sidebar.createOrganization')}
+            </span>
+          </div>
+          <Plus className="text-muted-foreground size-4 shrink-0 group-data-[collapsible=icon]:hidden" />
+        </button>
+        <OrganizationDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          organization={null}
+          onSuccess={handleDialogSuccess}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -82,7 +127,10 @@ export function SidebarOrgSelector() {
                 'group-data-[collapsible=icon]:hidden',
               )}
             >
-              <span className="truncate text-sm font-medium" title={currentOrg?.name ?? currentOrg?.slug}>
+              <span
+                className="truncate text-sm font-medium"
+                title={currentOrg?.name ?? currentOrg?.slug}
+              >
                 {truncateText(currentOrg?.name ?? currentOrg?.slug ?? '', 28)}
               </span>
               <span className="text-muted-foreground truncate text-xs">
@@ -104,9 +152,14 @@ export function SidebarOrgSelector() {
                 {t('sidebar.organization')}
               </div>
               <div>
-                <span className="block truncate" title={currentOrg?.name ?? currentOrg?.slug ?? undefined}>
+                <span
+                  className="block truncate"
+                  title={currentOrg?.name ?? currentOrg?.slug ?? undefined}
+                >
                   {truncateText(
-                    currentOrg?.name ?? currentOrg?.slug ?? t('breadcrumb.loading'),
+                    currentOrg?.name ??
+                      currentOrg?.slug ??
+                      t('breadcrumb.loading'),
                     28,
                   )}
                 </span>

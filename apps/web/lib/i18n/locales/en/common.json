@@ -229,6 +229,10 @@
   },
   "sidebar": {
     "organization": "Organization",
+    "noOrganization": "No organization",
+    "createOrganization": "Create organization",
+    "agentProcessing": "Agent processing",
+    "unsavedChanges": "Unsaved changes",
     "recentChats": "Recent chats",
     "recentNotebooks": "Recent notebooks",
     "viewAllChats": "View all chats",
