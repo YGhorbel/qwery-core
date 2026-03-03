@@ -43,6 +43,12 @@ export interface MessageRendererProps {
     typeof import('@ai-sdk/react').useChat
   >['sendMessage'];
   onDatasourceNameClick?: (id: string, name: string) => void;
+  onTableNameClick?: (
+    datasourceId: string,
+    datasourceName: string,
+    schema: string,
+    tableName: string,
+  ) => void;
   getDatasourceTooltip?: (id: string) => string;
 }
 
@@ -53,6 +59,7 @@ function MessageRendererComponent({
   onRegenerate,
   sendMessage,
   onDatasourceNameClick,
+  onTableNameClick,
   getDatasourceTooltip,
 }: MessageRendererProps) {
   const isLastMessage = message.id === messages.at(-1)?.id;
@@ -143,6 +150,8 @@ function MessageRendererComponent({
                   messageId={message.id}
                   index={i}
                   executionTimeMs={getExecutionTimeMs(toolPart, message)}
+                  onDatasourceNameClick={onDatasourceNameClick}
+                  onTableNameClick={onTableNameClick}
                 />
               );
             }
@@ -184,6 +193,18 @@ export const MessageRenderer = memo(MessageRendererComponent, (prev, next) => {
     if (isLastMessage) {
       return false;
     }
+  }
+
+  if (prev.onDatasourceNameClick !== next.onDatasourceNameClick) {
+    return false;
+  }
+
+  if (prev.onTableNameClick !== next.onTableNameClick) {
+    return false;
+  }
+
+  if (prev.getDatasourceTooltip !== next.getDatasourceTooltip) {
+    return false;
   }
 
   return true;

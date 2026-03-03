@@ -122,6 +122,12 @@ export interface QweryAgentUIProps {
   ) => void;
   onMessagesChange?: (messages: UIMessage[]) => void;
   onDatasourceNameClick?: (id: string, name: string) => void;
+  onTableNameClick?: (
+    datasourceId: string,
+    datasourceName: string,
+    schema: string,
+    tableName: string,
+  ) => void;
   getDatasourceTooltip?: (id: string) => string;
   isLoading?: boolean;
   onPasteToNotebook?: (
@@ -203,6 +209,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
     initialSuggestions,
     onBeforeSuggestionSend,
     onDatasourceNameClick,
+    onTableNameClick,
     getDatasourceTooltip,
   } = props;
 
@@ -703,7 +710,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
     scrollToBottomRef,
   ]);
 
-  const handleRegenerate = useCallback(async () => {
+  const handleRegenerate = useCallback(() => {
     const lastAssistantMessage = messages
       .filter((m) => m.role === 'assistant')
       .at(-1);
@@ -753,8 +760,10 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
       }
     }
 
-    regenerate();
-    scrollToBottomRef.current?.();
+    setTimeout(() => {
+      regenerate();
+      scrollToBottomRef.current?.();
+    }, 0);
   }, [
     messages,
     regenerate,
@@ -1049,6 +1058,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                     scrollerRef={scrollContainerRef}
                     onBeforeSuggestionSend={onBeforeSuggestionSend}
                     onDatasourceNameClick={onDatasourceNameClick}
+                    onTableNameClick={onTableNameClick}
                     getDatasourceTooltip={getDatasourceTooltip}
                     renderScrollButton={(scrollToBottom, isAtBottom) =>
                       !isAtBottom ? (
@@ -1176,50 +1186,22 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                               const messageDatasources =
                                 normalizeUIRole(message.role) === 'user'
                                   ? (() => {
+                                    if (
+                                      message.metadata &&
+                                      typeof message.metadata === 'object'
+                                    ) {
+                                      const metadata =
+                                        message.metadata as Record<
+                                          string,
+                                          unknown
+                                        >;
                                       if (
-                                        message.metadata &&
-                                        typeof message.metadata === 'object'
+                                        'datasources' in metadata &&
+                                        Array.isArray(metadata.datasources)
                                       ) {
-                                        const metadata =
-                                          message.metadata as Record<
-                                            string,
-                                            unknown
-                                          >;
-                                        if (
-                                          'datasources' in metadata &&
-                                          Array.isArray(metadata.datasources)
-                                        ) {
-                                          const metadataDatasources = (
-                                            metadata.datasources as string[]
-                                          )
-                                            .map((dsId) =>
-                                              datasources?.find(
-                                                (ds) => ds.id === dsId,
-                                              ),
-                                            )
-                                            .filter(
-                                              (ds): ds is DatasourceItem =>
-                                                ds !== undefined,
-                                            );
-                                          if (metadataDatasources.length > 0) {
-                                            return metadataDatasources;
-                                          }
-                                        }
-                                      }
-
-                                      const lastUserMessage = [...messages]
-                                        .reverse()
-                                        .find((msg) => msg.role === 'user');
-
-                                      const isLastUserMessage =
-                                        lastUserMessage?.id === message.id;
-
-                                      if (
-                                        isLastUserMessage &&
-                                        selectedDatasources &&
-                                        selectedDatasources.length > 0
-                                      ) {
-                                        return selectedDatasources
+                                        const metadataDatasources = (
+                                          metadata.datasources as string[]
+                                        )
                                           .map((dsId) =>
                                             datasources?.find(
                                               (ds) => ds.id === dsId,
@@ -1229,10 +1211,38 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                             (ds): ds is DatasourceItem =>
                                               ds !== undefined,
                                           );
+                                        if (metadataDatasources.length > 0) {
+                                          return metadataDatasources;
+                                        }
                                       }
+                                    }
 
-                                      return undefined;
-                                    })()
+                                    const lastUserMessage = [...messages]
+                                      .reverse()
+                                      .find((msg) => msg.role === 'user');
+
+                                    const isLastUserMessage =
+                                      lastUserMessage?.id === message.id;
+
+                                    if (
+                                      isLastUserMessage &&
+                                      selectedDatasources &&
+                                      selectedDatasources.length > 0
+                                    ) {
+                                      return selectedDatasources
+                                        .map((dsId) =>
+                                          datasources?.find(
+                                            (ds) => ds.id === dsId,
+                                          ),
+                                        )
+                                        .filter(
+                                          (ds): ds is DatasourceItem =>
+                                            ds !== undefined,
+                                        );
+                                    }
+
+                                    return undefined;
+                                  })()
                                   : undefined;
 
                               return (
@@ -1241,28 +1251,28 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                   className={cn(
                                     'flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden',
                                     normalizeUIRole(message.role) === 'user' &&
-                                      'justify-end',
+                                    'justify-end',
                                     normalizeUIRole(message.role) ===
-                                      'assistant' &&
-                                      'animate-in fade-in slide-in-from-bottom-4 duration-300',
+                                    'assistant' &&
+                                    'animate-in fade-in slide-in-from-bottom-4 duration-300',
                                     normalizeUIRole(message.role) === 'user' &&
-                                      'animate-in fade-in slide-in-from-bottom-4 duration-300',
+                                    'animate-in fade-in slide-in-from-bottom-4 duration-300',
                                   )}
                                 >
                                   {normalizeUIRole(message.role) ===
                                     'assistant' && (
-                                    <div className="mt-1 shrink-0">
-                                      <BotAvatar
-                                        size={6}
-                                        isLoading={isStreaming}
-                                      />
-                                    </div>
-                                  )}
+                                      <div className="mt-1 shrink-0">
+                                        <BotAvatar
+                                          size={6}
+                                          isLoading={isStreaming}
+                                        />
+                                      </div>
+                                    )}
                                   <div
                                     className={cn(
                                       'flex-end flex w-full min-w-0 flex-col justify-start gap-2 overflow-x-hidden',
                                       normalizeUIRole(message.role) ===
-                                        'assistant' && 'mx-4 sm:mx-6',
+                                      'assistant' && 'mx-4 sm:mx-6',
                                       normalizeUIRole(message.role) ===
                                         'user' && isEditing
                                         ? 'max-w-full'
@@ -1270,7 +1280,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                     )}
                                   >
                                     {isEditing &&
-                                    normalizeUIRole(message.role) === 'user' ? (
+                                      normalizeUIRole(message.role) === 'user' ? (
                                       (() => {
                                         const {
                                           text: _cleanText,
@@ -1284,42 +1294,42 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                             {(hasContext ||
                                               (datasources &&
                                                 pluginLogoMap)) && (
-                                              <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
-                                                {hasContext ? (
-                                                  <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
-                                                    <span className="font-medium">
-                                                      Context:{' '}
-                                                    </span>
-                                                    {editContext.lastAssistantResponse?.substring(
-                                                      0,
-                                                      100,
-                                                    )}
-                                                    {(editContext
-                                                      .lastAssistantResponse
-                                                      ?.length ?? 0) > 100 &&
-                                                      '...'}
-                                                  </div>
-                                                ) : (
-                                                  <div className="flex-1" />
-                                                )}
-                                                {datasources &&
-                                                  pluginLogoMap && (
-                                                    <DatasourceSelector
-                                                      selectedDatasources={
-                                                        editDatasources
-                                                      }
-                                                      onSelectionChange={
-                                                        setEditDatasources
-                                                      }
-                                                      datasources={datasources}
-                                                      pluginLogoMap={
-                                                        pluginLogoMap
-                                                      }
-                                                      variant="badge"
-                                                    />
+                                                <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
+                                                  {hasContext ? (
+                                                    <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
+                                                      <span className="font-medium">
+                                                        Context:{' '}
+                                                      </span>
+                                                      {editContext.lastAssistantResponse?.substring(
+                                                        0,
+                                                        100,
+                                                      )}
+                                                      {(editContext
+                                                        .lastAssistantResponse
+                                                        ?.length ?? 0) > 100 &&
+                                                        '...'}
+                                                    </div>
+                                                  ) : (
+                                                    <div className="flex-1" />
                                                   )}
-                                              </div>
-                                            )}
+                                                  {datasources &&
+                                                    pluginLogoMap && (
+                                                      <DatasourceSelector
+                                                        selectedDatasources={
+                                                          editDatasources
+                                                        }
+                                                        onSelectionChange={
+                                                          setEditDatasources
+                                                        }
+                                                        datasources={datasources}
+                                                        pluginLogoMap={
+                                                          pluginLogoMap
+                                                        }
+                                                        variant="badge"
+                                                      />
+                                                    )}
+                                                </div>
+                                              )}
                                             <div className="group w-full max-w-full min-w-0">
                                               <Message
                                                 from={message.role}
@@ -1375,7 +1385,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                     ) : (
                                       <>
                                         {normalizeUIRole(message.role) ===
-                                        'user' ? (
+                                          'user' ? (
                                           (() => {
                                             const { text, context } =
                                               parseMessageWithContext(
@@ -1402,7 +1412,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                               <div className="flex flex-col items-end gap-1.5">
                                                 {messageDatasources &&
                                                   messageDatasources.length >
-                                                    0 && (
+                                                  0 && (
                                                     <div className="flex w-full max-w-[80%] min-w-0 justify-end overflow-x-hidden">
                                                       <DatasourceBadges
                                                         datasources={
@@ -1508,90 +1518,90 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                           (normalizeUIRole(message.role) ===
                                             'user' &&
                                             isLastTextPart)) && (
-                                          <div
-                                            className={cn(
-                                              'mt-1 flex items-center gap-2',
-                                              normalizeUIRole(message.role) ===
+                                            <div
+                                              className={cn(
+                                                'mt-1 flex items-center gap-2',
+                                                normalizeUIRole(message.role) ===
                                                 'user' && 'justify-end',
-                                            )}
-                                          >
-                                            {message.role === 'assistant' && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={handleRegenerate}
-                                                className="h-7 w-7"
-                                                title="Retry"
-                                              >
-                                                <RefreshCcwIcon className="size-3" />
-                                              </Button>
-                                            )}
-                                            {normalizeUIRole(message.role) ===
-                                              'user' &&
-                                              !isChatActive(status) && (
+                                              )}
+                                            >
+                                              {message.role === 'assistant' && (
                                                 <Button
                                                   variant="ghost"
                                                   size="icon"
-                                                  onClick={() => {
-                                                    const { text: cleanText } =
-                                                      parseMessageWithContext(
-                                                        part.text,
-                                                      );
-                                                    handleEditStart(
-                                                      message.id,
-                                                      cleanText,
-                                                      messageDatasources?.map(
-                                                        (ds) => ds.id,
-                                                      ) ?? [],
-                                                    );
-                                                  }}
+                                                  onClick={handleRegenerate}
                                                   className="h-7 w-7"
-                                                  title="Edit"
+                                                  title="Retry"
                                                 >
-                                                  <PencilIcon className="size-3" />
+                                                  <RefreshCcwIcon className="size-3" />
                                                 </Button>
                                               )}
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={async () => {
-                                                const partId = `${message.id}-${i}`;
-                                                try {
-                                                  await navigator.clipboard.writeText(
-                                                    part.text,
-                                                  );
-                                                  setCopiedMessagePartId(
-                                                    partId,
-                                                  );
-                                                  setTimeout(() => {
-                                                    setCopiedMessagePartId(
-                                                      null,
+                                              {normalizeUIRole(message.role) ===
+                                                'user' &&
+                                                !isChatActive(status) && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                      const { text: cleanText } =
+                                                        parseMessageWithContext(
+                                                          part.text,
+                                                        );
+                                                      handleEditStart(
+                                                        message.id,
+                                                        cleanText,
+                                                        messageDatasources?.map(
+                                                          (ds) => ds.id,
+                                                        ) ?? [],
+                                                      );
+                                                    }}
+                                                    className="h-7 w-7"
+                                                    title="Edit"
+                                                  >
+                                                    <PencilIcon className="size-3" />
+                                                  </Button>
+                                                )}
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={async () => {
+                                                  const partId = `${message.id}-${i}`;
+                                                  try {
+                                                    await navigator.clipboard.writeText(
+                                                      part.text,
                                                     );
-                                                  }, 2000);
-                                                } catch (error) {
-                                                  console.error(
-                                                    'Failed to copy:',
-                                                    error,
-                                                  );
+                                                    setCopiedMessagePartId(
+                                                      partId,
+                                                    );
+                                                    setTimeout(() => {
+                                                      setCopiedMessagePartId(
+                                                        null,
+                                                      );
+                                                    }, 2000);
+                                                  } catch (error) {
+                                                    console.error(
+                                                      'Failed to copy:',
+                                                      error,
+                                                    );
+                                                  }
+                                                }}
+                                                className="h-7 w-7"
+                                                title={
+                                                  copiedMessagePartId ===
+                                                    `${message.id}-${i}`
+                                                    ? 'Copied!'
+                                                    : 'Copy'
                                                 }
-                                              }}
-                                              className="h-7 w-7"
-                                              title={
-                                                copiedMessagePartId ===
-                                                `${message.id}-${i}`
-                                                  ? 'Copied!'
-                                                  : 'Copy'
-                                              }
-                                            >
-                                              {copiedMessagePartId ===
-                                              `${message.id}-${i}` ? (
-                                                <CheckIcon className="size-3 text-green-600" />
-                                              ) : (
-                                                <CopyIcon className="size-3" />
-                                              )}
-                                            </Button>
-                                          </div>
-                                        )}
+                                              >
+                                                {copiedMessagePartId ===
+                                                  `${message.id}-${i}` ? (
+                                                  <CheckIcon className="size-3 text-green-600" />
+                                                ) : (
+                                                  <CopyIcon className="size-3" />
+                                                )}
+                                              </Button>
+                                            </div>
+                                          )}
                                       </>
                                     )}
                                   </div>
@@ -1656,6 +1666,8 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                       defaultOpenWhenUncontrolled={isLastPart}
                                       onPasteToNotebook={onPasteToNotebook}
                                       notebookContext={currentNotebookContext}
+                                      onDatasourceNameClick={onDatasourceNameClick}
+                                      onTableNameClick={onTableNameClick}
                                     />
                                   );
                                 }
@@ -1679,6 +1691,8 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                     }
                                     onPasteToNotebook={onPasteToNotebook}
                                     notebookContext={currentNotebookContext}
+                                    onDatasourceNameClick={onDatasourceNameClick}
+                                    onTableNameClick={onTableNameClick}
                                   />
                                 );
                               }
@@ -1692,28 +1706,28 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                 {(status === 'submitted' ||
                   (status === 'streaming' &&
                     (!lastAssistantHasText || !lastMessageIsAssistant))) && (
-                  <div className="mx-auto w-full max-w-4xl px-6">
-                    <div className="animate-in fade-in slide-in-from-bottom-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300">
-                      <BotAvatar
-                        size={6}
-                        isLoading={true}
-                        className="mt-1 shrink-0"
-                      />
-                      <div className="flex-end flex w-full max-w-[80%] min-w-0 flex-col justify-start gap-2 overflow-x-hidden">
-                        <Message
-                          from="assistant"
-                          className="w-full max-w-full min-w-0"
-                        >
-                          <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                            <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
-                              <MessageResponse></MessageResponse>
-                            </div>
-                          </MessageContent>
-                        </Message>
+                    <div className="mx-auto w-full max-w-4xl px-6">
+                      <div className="animate-in fade-in slide-in-from-bottom-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300">
+                        <BotAvatar
+                          size={6}
+                          isLoading={true}
+                          className="mt-1 shrink-0"
+                        />
+                        <div className="flex-end flex w-full max-w-[80%] min-w-0 flex-col justify-start gap-2 overflow-x-hidden">
+                          <Message
+                            from="assistant"
+                            className="w-full max-w-full min-w-0"
+                          >
+                            <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
+                              <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
+                                <MessageResponse></MessageResponse>
+                              </div>
+                            </MessageContent>
+                          </Message>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 <div ref={sentinelRef} className="h-px w-full" />
                 <div className="h-32 w-full" aria-hidden />
               </ConversationContent>
@@ -1727,13 +1741,13 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
           {(messages.length === 0 &&
             ((isLoading && initialSuggestions?.length) ||
               badgeSuggestions.length > 0)) ||
-          lastMessageHasSuggestions ||
-          badgesFadingOut ? (
+            lastMessageHasSuggestions ||
+            badgesFadingOut ? (
             <div
               className={cn(
                 'absolute right-0 bottom-full left-0 z-50 flex justify-center pb-3 transition-all duration-300 ease-out',
                 badgesRevealing &&
-                  'animate-in fade-in slide-in-from-bottom-4 duration-300',
+                'animate-in fade-in slide-in-from-bottom-4 duration-300',
                 badgesFadingOut
                   ? badgesFadeToZero
                     ? 'pointer-events-none translate-y-0 opacity-0'
@@ -1742,7 +1756,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                     ? 'translate-y-0 opacity-100'
                     : 'pointer-events-none invisible translate-y-4 opacity-0',
                 !showSuggestionBadges &&
-                  'pointer-events-none translate-y-2 opacity-0',
+                'pointer-events-none translate-y-2 opacity-0',
               )}
               data-test="suggestion-badges-container"
             >

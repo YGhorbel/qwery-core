@@ -169,6 +169,9 @@ export const VirtuosoMessageList = forwardRef<
       messageItemProps.onSubmitFeedback,
       messageItemProps.openToolPartKeys,
       messageItemProps.onToolPartOpenChange,
+      messageItemProps.onDatasourceNameClick,
+      messageItemProps.onTableNameClick,
+      messageItemProps.getDatasourceTooltip,
     ],
   );
 

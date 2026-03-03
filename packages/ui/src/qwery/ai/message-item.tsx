@@ -52,6 +52,52 @@ import {
   getFeedbackFromMetadata,
 } from './feedback-types';
 
+function getMessageDatasources(
+  message: UIMessage,
+  datasources: DatasourceItem[] | undefined,
+  messages: UIMessage[],
+  selectedDatasources: string[] | undefined,
+): DatasourceItem[] | undefined {
+  const resolveIds = (ids: string[]) =>
+    (ids || [])
+      .map((dsId) => datasources?.find((ds) => ds.id === dsId))
+      .filter((ds): ds is DatasourceItem => ds !== undefined);
+
+  if (message.metadata && typeof message.metadata === 'object') {
+    const metadata = message.metadata as Record<string, unknown>;
+    if ('datasources' in metadata && Array.isArray(metadata.datasources)) {
+      const resolved = resolveIds(metadata.datasources as string[]);
+      if (resolved.length > 0) return resolved;
+    }
+  }
+
+  const isUser = normalizeUIRole(message.role) === 'user';
+  if (isUser && selectedDatasources?.length) {
+    const resolved = resolveIds(selectedDatasources);
+    if (resolved.length > 0) return resolved;
+  }
+
+  const msgIndex = messages.findIndex((m) => m.id === message.id);
+  if (msgIndex > 0) {
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      const prev = messages[i];
+      if (normalizeUIRole(prev?.role) === 'user' && prev?.metadata && typeof prev.metadata === 'object') {
+        const meta = prev.metadata as Record<string, unknown>;
+        if (Array.isArray(meta.datasources)) {
+          const resolved = resolveIds(meta.datasources as string[]);
+          if (resolved.length > 0) return resolved;
+        }
+      }
+    }
+  }
+
+  if (selectedDatasources?.length) {
+    const resolved = resolveIds(selectedDatasources);
+    if (resolved.length > 0) return resolved;
+  }
+  return undefined;
+}
+
 export interface MessageItemProps {
   message: UIMessage;
   messages: UIMessage[];
@@ -102,6 +148,12 @@ export interface MessageItemProps {
     metadata?: import('./utils/suggestion-pattern').SuggestionMetadata,
   ) => Promise<boolean>;
   onDatasourceNameClick?: (id: string, name: string) => void;
+  onTableNameClick?: (
+    datasourceId: string,
+    datasourceName: string,
+    schema: string,
+    tableName: string,
+  ) => void;
   getDatasourceTooltip?: (id: string) => string;
 }
 
@@ -157,6 +209,7 @@ function MessageItemComponent({
   scrollToBottom,
   onBeforeSuggestionSend,
   onDatasourceNameClick,
+  onTableNameClick,
   getDatasourceTooltip,
   onToolApproval,
 }: MessageItemProps) {
@@ -215,7 +268,7 @@ function MessageItemComponent({
           <div
             className={cn(
               hasAssistantParts &&
-                'animate-in fade-in slide-in-from-bottom-4 mt-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300',
+              'animate-in fade-in slide-in-from-bottom-4 mt-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300',
             )}
           >
             {hasAssistantParts && (
@@ -226,7 +279,7 @@ function MessageItemComponent({
             <div
               className={cn(
                 hasAssistantParts &&
-                  'flex min-w-0 flex-1 flex-col gap-2 pr-2 sm:pr-4',
+                'flex min-w-0 flex-1 flex-col gap-2 pr-2 sm:pr-4',
                 !hasAssistantParts && 'w-full',
               )}
             >
@@ -336,7 +389,7 @@ function MessageItemComponent({
                             )}
                           >
                             {isEditing &&
-                            normalizeUIRole(message.role) === 'user' ? (
+                              normalizeUIRole(message.role) === 'user' ? (
                               (() => {
                                 const { text: _cleanText, context } =
                                   parseMessageWithContext(part.text);
@@ -347,37 +400,37 @@ function MessageItemComponent({
                                   <>
                                     {(hasContext ||
                                       (datasources && pluginLogoMap)) && (
-                                      <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
-                                        {hasContext ? (
-                                          <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
-                                            <span className="font-medium">
-                                              Context:{' '}
-                                            </span>
-                                            {context.lastAssistantResponse?.substring(
-                                              0,
-                                              100,
-                                            )}
-                                            {(context.lastAssistantResponse
-                                              ?.length ?? 0) > 100 && '...'}
-                                          </div>
-                                        ) : (
-                                          <div className="flex-1" />
-                                        )}
-                                        {datasources && pluginLogoMap && (
-                                          <DatasourceSelector
-                                            selectedDatasources={
-                                              editDatasources
-                                            }
-                                            onSelectionChange={
-                                              onEditDatasourcesChange
-                                            }
-                                            datasources={datasources}
-                                            pluginLogoMap={pluginLogoMap}
-                                            variant="badge"
-                                          />
-                                        )}
-                                      </div>
-                                    )}
+                                        <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
+                                          {hasContext ? (
+                                            <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
+                                              <span className="font-medium">
+                                                Context:{' '}
+                                              </span>
+                                              {context.lastAssistantResponse?.substring(
+                                                0,
+                                                100,
+                                              )}
+                                              {(context.lastAssistantResponse
+                                                ?.length ?? 0) > 100 && '...'}
+                                            </div>
+                                          ) : (
+                                            <div className="flex-1" />
+                                          )}
+                                          {datasources && pluginLogoMap && (
+                                            <DatasourceSelector
+                                              selectedDatasources={
+                                                editDatasources
+                                              }
+                                              onSelectionChange={
+                                                onEditDatasourcesChange
+                                              }
+                                              datasources={datasources}
+                                              pluginLogoMap={pluginLogoMap}
+                                              variant="badge"
+                                            />
+                                          )}
+                                        </div>
+                                      )}
                                     <div className="group w-full max-w-full min-w-0">
                                       <Message
                                         from={message.role}
@@ -491,13 +544,13 @@ function MessageItemComponent({
                                                 className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                                                 title={
                                                   copiedMessagePartId ===
-                                                  `${message.id}-${i}`
+                                                    `${message.id}-${i}`
                                                     ? t('sidebar.copied')
                                                     : t('sidebar.copy')
                                                 }
                                               >
                                                 {copiedMessagePartId ===
-                                                `${message.id}-${i}` ? (
+                                                  `${message.id}-${i}` ? (
                                                   <CheckIcon className="size-3 text-green-600" />
                                                 ) : (
                                                   <CopyIcon className="size-3" />
@@ -579,13 +632,13 @@ function MessageItemComponent({
                                                   className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                                                   title={
                                                     copiedMessagePartId ===
-                                                    `${message.id}-${i}`
+                                                      `${message.id}-${i}`
                                                       ? t('sidebar.copied')
                                                       : t('sidebar.copy')
                                                   }
                                                 >
                                                   {copiedMessagePartId ===
-                                                  `${message.id}-${i}` ? (
+                                                    `${message.id}-${i}` ? (
                                                     <CheckIcon className="size-3 text-green-600" />
                                                   ) : (
                                                     <CopyIcon className="size-3" />
@@ -716,13 +769,13 @@ function MessageItemComponent({
                                         className="h-7 w-7"
                                         title={
                                           copiedMessagePartId ===
-                                          `${message.id}-${i}`
+                                            `${message.id}-${i}`
                                             ? 'Copied!'
                                             : 'Copy'
                                         }
                                       >
                                         {copiedMessagePartId ===
-                                        `${message.id}-${i}` ? (
+                                          `${message.id}-${i}` ? (
                                           <CheckIcon className="size-3 text-green-600" />
                                         ) : (
                                           <CopyIcon className="size-3" />
@@ -882,6 +935,12 @@ function MessageItemComponent({
 
                       const toolPartKey = `${message.id}-${i}`;
                       const isLastPart = i === message.parts.length - 1;
+                      const messageDatasourcesForTool = getMessageDatasources(
+                        message,
+                        datasources,
+                        messages,
+                        selectedDatasources,
+                      );
 
                       if (isToolInProgress) {
                         return (
@@ -899,14 +958,14 @@ function MessageItemComponent({
                               )}
                               open={
                                 openToolPartKeys !== undefined &&
-                                openToolPartKeys !== null
+                                  openToolPartKeys !== null
                                   ? openToolPartKeys.has(toolPartKey)
                                   : undefined
                               }
                               onOpenChange={
                                 onToolPartOpenChange
                                   ? (open) =>
-                                      onToolPartOpenChange(toolPartKey, open)
+                                    onToolPartOpenChange(toolPartKey, open)
                                   : undefined
                               }
                               defaultOpenWhenUncontrolled={isLastPart}
@@ -916,6 +975,9 @@ function MessageItemComponent({
                               pluginLogoMap={pluginLogoMap}
                               selectedDatasourceItems={selectedDatasourceItems}
                               messages={messages}
+                              datasources={messageDatasourcesForTool}
+                              onDatasourceNameClick={onDatasourceNameClick}
+                              onTableNameClick={onTableNameClick}
                             />
                           </div>
                         );
@@ -937,14 +999,14 @@ function MessageItemComponent({
                             )}
                             open={
                               openToolPartKeys !== undefined &&
-                              openToolPartKeys !== null
+                                openToolPartKeys !== null
                                 ? openToolPartKeys.has(toolPartKey)
                                 : undefined
                             }
                             onOpenChange={
                               onToolPartOpenChange
                                 ? (open) =>
-                                    onToolPartOpenChange(toolPartKey, open)
+                                  onToolPartOpenChange(toolPartKey, open)
                                 : undefined
                             }
                             defaultOpenWhenUncontrolled={
@@ -956,6 +1018,9 @@ function MessageItemComponent({
                             pluginLogoMap={pluginLogoMap}
                             selectedDatasourceItems={selectedDatasourceItems}
                             messages={messages}
+                            datasources={messageDatasourcesForTool}
+                            onDatasourceNameClick={onDatasourceNameClick}
+                            onTableNameClick={onTableNameClick}
                           />
                         </div>
                       );
@@ -1022,6 +1087,25 @@ export const MessageItem = memo(MessageItemComponent, (prev, next) => {
   }
 
   if (prev.openToolPartKeys !== next.openToolPartKeys) {
+    return false;
+  }
+
+  if (prev.onDatasourceNameClick !== next.onDatasourceNameClick) return true;
+  if (prev.onTableNameClick !== next.onTableNameClick) return true;
+
+  if (prev.getDatasourceTooltip !== next.getDatasourceTooltip) {
+    return false;
+  }
+
+  if (prev.datasources !== next.datasources) {
+    return false;
+  }
+
+  if (prev.selectedDatasources !== next.selectedDatasources) {
+    return false;
+  }
+
+  if (prev.pluginLogoMap !== next.pluginLogoMap) {
     return false;
   }
 

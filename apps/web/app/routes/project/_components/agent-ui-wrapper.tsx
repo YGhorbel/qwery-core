@@ -45,7 +45,14 @@ import { useAgentStatus, formatRelativeTime } from '@qwery/ui/ai';
 import type { FeedbackPayload } from '@qwery/ui/ai';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { createDatasourceViewPath } from '~/config/project.navigation.config';
+import {
+  createDatasourceViewPath,
+  createDatasourceTableViewPath,
+} from '~/config/project.navigation.config';
+import {
+  openDatasourceInNewTab,
+  openTableInNewTab,
+} from '~/lib/utils/datasource-navigation';
 
 type SendMessageFn = (
   message: { text: string },
@@ -693,14 +700,32 @@ export const AgentUIWrapper = forwardRef<
   );
 
   const _handleDatasourceNameClick = useCallback(
-    (idOrSlug: string, _name: string) => {
-      const ds =
-        datasourceItems.find((d) => d.id === idOrSlug) ??
-        datasourceItems.find((d) => d.slug === idOrSlug);
-      if (ds?.slug) {
-        const path = createDatasourceViewPath(ds.slug);
-        window.open(path, '_blank', 'noopener,noreferrer');
-      }
+    (idOrSlug: string, name: string) => {
+      openDatasourceInNewTab(
+        datasourceItems,
+        idOrSlug,
+        name,
+        createDatasourceViewPath,
+      );
+    },
+    [datasourceItems],
+  );
+
+  const _handleTableNameClick = useCallback(
+    (
+      datasourceIdOrSlug: string,
+      datasourceName: string,
+      schema: string,
+      tableName: string,
+    ) => {
+      openTableInNewTab(
+        datasourceItems,
+        datasourceIdOrSlug,
+        datasourceName,
+        schema,
+        tableName,
+        createDatasourceTableViewPath,
+      );
     },
     [datasourceItems],
   );
@@ -733,6 +758,9 @@ export const AgentUIWrapper = forwardRef<
         notebookContext={notebookContext}
         isLoading={isLoading}
         conversationSlug={conversationSlug}
+        onDatasourceNameClick={_handleDatasourceNameClick}
+        onTableNameClick={_handleTableNameClick}
+        getDatasourceTooltip={_getDatasourceTooltip}
       />
       <AlertDialog
         open={noDatasourceDialogOpen}

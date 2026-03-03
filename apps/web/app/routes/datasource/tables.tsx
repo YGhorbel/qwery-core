@@ -82,9 +82,9 @@ export default function TablesPage(props: Route.ComponentProps) {
   const handleTableClick = (table: TableListItem) => {
     const tableData = filteredTables.find((t) => t.name === table.tableName);
     if (!tableData) return;
-
-    const tablePath = `/ds/${slug}/tables/${tableData.id}`;
-    navigate(tablePath);
+    const schema = encodeURIComponent(tableData.schema ?? 'main');
+    const tableName = encodeURIComponent(tableData.name);
+    navigate(`/ds/${slug}/tables/${schema}/${tableName}`);
   };
 
   if (!datasource) {
