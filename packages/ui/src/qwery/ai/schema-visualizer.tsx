@@ -87,7 +87,11 @@ function datasourcePrefix(schemaKey: string): string {
 }
 
 function slugifyForPrefix(s: string): string {
-  return String(s).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '') || s;
+  return (
+    String(s)
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '') || s
+  );
 }
 
 /**
@@ -130,9 +134,7 @@ export function SchemaVisualizer({
 
   const datasourceNames = Object.keys(groupedTables);
 
-  const [pageBySchema, setPageBySchema] = useState<
-    Record<string, number>
-  >({});
+  const [pageBySchema, setPageBySchema] = useState<Record<string, number>>({});
   const [viewModeBySchema, setViewModeBySchema] = useState<
     Record<string, SchemaViewMode>
   >({});
@@ -272,25 +274,25 @@ export function SchemaVisualizer({
         >
           <div
             className={cn(
-              'flex items-center gap-2 select-none py-1',
-              variant === 'minimal' ? 'opacity-40 px-2' : 'opacity-60 px-3',
+              'flex items-center gap-2 py-1 select-none',
+              variant === 'minimal' ? 'px-2' : 'px-3',
             )}
           >
             <AlertCircleIcon
               className={cn(
-                'text-destructive',
+                'text-destructive/80',
                 variant === 'minimal' ? 'h-4 w-4' : 'h-5 w-5',
               )}
             />
             <span
               className={cn(
-                'text-destructive font-bold uppercase tracking-widest',
+                'text-destructive/80 font-bold tracking-widest uppercase',
                 variant === 'minimal' ? 'text-[10px]' : 'text-xs',
               )}
             >
               Unavailable
             </span>
-            <div className="bg-destructive/20 h-px flex-1" />
+            <div className="bg-destructive/40 h-px flex-1" />
           </div>
           <div
             className={cn(
@@ -304,7 +306,8 @@ export function SchemaVisualizer({
               );
               const icon = getPluginIcon(datasource?.datasource_provider);
               const id = datasource?.id ?? e.datasourceId;
-              const name = datasource?.name ?? e.datasourceName ?? e.datasourceId;
+              const name =
+                datasource?.name ?? e.datasourceName ?? e.datasourceId;
               const provider = datasource?.datasource_provider;
               const label = [
                 e.datasourceName ?? e.datasourceId,
@@ -314,7 +317,7 @@ export function SchemaVisualizer({
                 .join(' ');
               const isClickable = Boolean(onDatasourceNameClick);
               const errorCardClass = cn(
-                'bg-destructive/5 text-destructive/80 flex items-center gap-2 rounded-md font-bold ring-1 ring-destructive/10 transition-all hover:bg-destructive/10',
+                'bg-destructive/5 text-destructive/80 border-destructive/40 hover:bg-destructive/10 flex items-center gap-2 rounded-md border font-bold shadow-sm transition-all',
                 variant === 'minimal'
                   ? 'px-2.5 py-1.5 text-xs'
                   : 'px-3 py-2 text-sm',
@@ -327,7 +330,7 @@ export function SchemaVisualizer({
                       src={icon}
                       alt={name}
                       className={cn(
-                        'shrink-0 object-contain grayscale opacity-70',
+                        'shrink-0 object-contain',
                         variant === 'minimal' ? 'h-4 w-4' : 'h-4 w-4',
                         datasource?.datasource_provider === 'json-online' &&
                           'dark:invert',
@@ -336,7 +339,7 @@ export function SchemaVisualizer({
                   ) : (
                     <Database
                       className={cn(
-                        'text-destructive/50 shrink-0',
+                        'text-destructive/60 shrink-0',
                         variant === 'minimal' ? 'h-3.5 w-3.5' : 'h-4 w-4',
                       )}
                     />
@@ -359,7 +362,11 @@ export function SchemaVisualizer({
                   {content}
                 </button>
               ) : (
-                <div key={e.datasourceId} className={errorCardClass} title={e.error}>
+                <div
+                  key={e.datasourceId}
+                  className={errorCardClass}
+                  title={e.error}
+                >
                   {content}
                 </div>
               );
@@ -369,7 +376,10 @@ export function SchemaVisualizer({
       )}
       {datasourceOrder.map((prefix) => {
         const schemaKeys = groupsByDatasource[prefix] ?? [];
-        const displayInfo = displayInfoByPrefix[prefix] ?? { id: prefix, name: prefix };
+        const displayInfo = displayInfoByPrefix[prefix] ?? {
+          id: prefix,
+          name: prefix,
+        };
 
         return (
           <div
@@ -381,24 +391,30 @@ export function SchemaVisualizer({
           >
             <div
               className={cn(
-                'group flex items-center gap-2 select-none py-1',
+                'group flex items-center gap-2 py-1 select-none',
                 variant === 'minimal'
-                  ? 'opacity-40 px-2 mt-3 first:mt-0'
-                  : 'opacity-60 px-3 mt-5 first:mt-0',
+                  ? 'mt-3 px-2 first:mt-0'
+                  : 'mt-5 px-3 first:mt-0',
               )}
               role="separator"
             >
               <button
                 type="button"
-                onClick={() => onDatasourceNameClick?.(displayInfo.id, displayInfo.name)}
+                onClick={() =>
+                  onDatasourceNameClick?.(displayInfo.id, displayInfo.name)
+                }
                 disabled={!onDatasourceNameClick}
                 className={cn(
-                  'flex items-center gap-2 transition-all outline-none rounded-sm px-1 -ml-1',
+                  '-ml-1 flex items-center gap-2 rounded-sm px-1 transition-all outline-none',
                   onDatasourceNameClick
-                    ? 'hover:bg-muted/50 hover:text-primary active:scale-[0.98] cursor-pointer'
-                    : 'cursor-default'
+                    ? 'hover:bg-muted/50 hover:text-primary cursor-pointer active:scale-[0.98]'
+                    : 'cursor-default',
                 )}
-                title={onDatasourceNameClick ? `View ${displayInfo.name} details` : undefined}
+                title={
+                  onDatasourceNameClick
+                    ? `View ${displayInfo.name} details`
+                    : undefined
+                }
               >
                 {displayInfo.icon ? (
                   <img
@@ -420,16 +436,16 @@ export function SchemaVisualizer({
                 )}
                 <span
                   className={cn(
-                    'text-muted-foreground font-bold whitespace-nowrap uppercase tracking-wider transition-colors',
+                    'text-muted-foreground font-bold tracking-wider whitespace-nowrap uppercase transition-colors',
                     variant === 'minimal' ? 'text-[10px]' : 'text-xs',
-                    onDatasourceNameClick && 'group-hover:text-primary'
+                    onDatasourceNameClick && 'group-hover:text-primary',
                   )}
                 >
                   {displayInfo.name}
                   {displayInfo.provider ? ` (${displayInfo.provider})` : ''}
                 </span>
               </button>
-              <div className="bg-border/30 h-px flex-1" />
+              <div className="bg-border/60 h-px flex-1" />
             </div>
 
             {schemaKeys.map((dsName) => {
@@ -438,7 +454,10 @@ export function SchemaVisualizer({
                 1,
                 Math.ceil(allTables.length / SCHEMA_TABLES_PER_PAGE),
               );
-              const pageForSchema = Math.min(getPage(dsName), totalPagesForSchema);
+              const pageForSchema = Math.min(
+                getPage(dsName),
+                totalPagesForSchema,
+              );
               const start = (pageForSchema - 1) * SCHEMA_TABLES_PER_PAGE;
               const tables = allTables.slice(
                 start,
@@ -454,7 +473,7 @@ export function SchemaVisualizer({
                   className={cn(
                     'group/schema overflow-hidden transition-all',
                     variant === 'minimal'
-                      ? 'border-border/40 rounded-lg border bg-muted/5'
+                      ? 'border-border/40 bg-muted/5 rounded-lg border'
                       : 'border-border/50 bg-muted/5 rounded-lg border shadow-xs',
                   )}
                 >
@@ -477,13 +496,12 @@ export function SchemaVisualizer({
                     <div className="flex shrink-0 items-center gap-2">
                       <span
                         className={cn(
-                          'text-muted-foreground/60 tabular-nums',
+                          'text-foreground tabular-nums',
                           variant === 'minimal' ? 'text-[10px]' : 'text-xs',
                         )}
                       >
                         {allTables.length}{' '}
-                        {variant !== 'minimal' &&
-                          (allTables.length !== 1 ? 'tables' : 'table')}
+                        {allTables.length === 1 ? 'table' : 'tables'}
                       </span>
                       <ChevronDown
                         className={cn(
@@ -498,7 +516,7 @@ export function SchemaVisualizer({
                     <div
                       className={cn(
                         variant === 'minimal'
-                          ? 'pt-1.5 pb-2.5 pl-4 pr-1'
+                          ? 'pt-1.5 pr-1 pb-2.5 pl-4'
                           : 'border-t p-4',
                       )}
                     >
@@ -506,7 +524,9 @@ export function SchemaVisualizer({
                         <div className="mb-4 flex justify-end">
                           <div className="flex items-center gap-0.5 rounded-md border p-1">
                             <Button
-                              variant={viewMode === 'card' ? 'secondary' : 'ghost'}
+                              variant={
+                                viewMode === 'card' ? 'secondary' : 'ghost'
+                              }
                               size="sm"
                               className="h-7 px-2"
                               onClick={() =>
@@ -520,7 +540,9 @@ export function SchemaVisualizer({
                               <LayoutGrid className="h-3.5 w-3.5" />
                             </Button>
                             <Button
-                              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                              variant={
+                                viewMode === 'list' ? 'secondary' : 'ghost'
+                              }
                               size="sm"
                               className="h-7 px-2"
                               onClick={() =>
@@ -584,24 +606,22 @@ export function SchemaVisualizer({
                                     {table.name}
                                   </div>
                                 );
-                                const openTable =
-                                  onTableNameClick
-                                    ? () =>
-                                        onTableNameClick(
-                                          displayInfo.id,
-                                          displayInfo.name,
-                                          schemaNameOnly(table.schema ?? ''),
-                                          table.name,
-                                        )
-                                    : null;
-                                const openDatasource =
-                                  onDatasourceNameClick
-                                    ? () =>
-                                        onDatasourceNameClick(
-                                          displayInfo.id,
-                                          displayInfo.name,
-                                        )
-                                    : null;
+                                const openTable = onTableNameClick
+                                  ? () =>
+                                      onTableNameClick(
+                                        displayInfo.id,
+                                        displayInfo.name,
+                                        schemaNameOnly(table.schema ?? ''),
+                                        table.name,
+                                      )
+                                  : null;
+                                const openDatasource = onDatasourceNameClick
+                                  ? () =>
+                                      onDatasourceNameClick(
+                                        displayInfo.id,
+                                        displayInfo.name,
+                                      )
+                                  : null;
                                 const isTableClickable = Boolean(
                                   openTable ?? openDatasource,
                                 );
@@ -617,14 +637,14 @@ export function SchemaVisualizer({
                                         variant === 'minimal'
                                           ? 'px-3 py-2 text-xs'
                                           : 'px-4 py-2.5 text-sm',
-                                        isTableClickable && 'p-0'
+                                        isTableClickable && 'p-0',
                                       )}
                                     >
                                       {isTableClickable && handleClick ? (
                                         <button
                                           type="button"
                                           onClick={handleClick}
-                                          className="text-foreground/90 hover:text-primary hover:underline w-full text-left px-3 py-2 rounded-sm outline-none transition-colors cursor-pointer"
+                                          className="text-foreground/90 hover:text-primary w-full cursor-pointer rounded-sm px-3 py-2 text-left transition-colors outline-none hover:underline"
                                           title={
                                             openTable
                                               ? `Open table ${table.name} in new tab`
@@ -643,7 +663,7 @@ export function SchemaVisualizer({
                                       className={cn(
                                         'text-muted-foreground font-mono tabular-nums',
                                         variant === 'minimal'
-                                          ? 'pr-3 text-[10px] text-right'
+                                          ? 'pr-3 text-right text-[10px]'
                                           : 'px-4 py-2.5 text-sm',
                                       )}
                                     >
@@ -663,24 +683,22 @@ export function SchemaVisualizer({
                           )}
                         >
                           {tables.map((table: TableWithColumns) => {
-                            const openTableCard =
-                              onTableNameClick
-                                ? () =>
-                                    onTableNameClick(
-                                      displayInfo.id,
-                                      displayInfo.name,
-                                      schemaNameOnly(table.schema ?? ''),
-                                      table.name,
-                                    )
-                                : null;
-                            const openDatasourceCard =
-                              onDatasourceNameClick
-                                ? () =>
-                                    onDatasourceNameClick(
-                                      displayInfo.id,
-                                      displayInfo.name,
-                                    )
-                                : null;
+                            const openTableCard = onTableNameClick
+                              ? () =>
+                                  onTableNameClick(
+                                    displayInfo.id,
+                                    displayInfo.name,
+                                    schemaNameOnly(table.schema ?? ''),
+                                    table.name,
+                                  )
+                              : null;
+                            const openDatasourceCard = onDatasourceNameClick
+                              ? () =>
+                                  onDatasourceNameClick(
+                                    displayInfo.id,
+                                    displayInfo.name,
+                                  )
+                              : null;
                             const handleCardTitleClick =
                               openTableCard ?? openDatasourceCard;
                             return (
@@ -710,7 +728,7 @@ export function SchemaVisualizer({
                                         type="button"
                                         onClick={handleCardTitleClick}
                                         className={cn(
-                                          'text-foreground/90 font-mono font-medium hover:text-primary hover:underline outline-none transition-colors cursor-pointer text-left',
+                                          'text-foreground/90 hover:text-primary cursor-pointer text-left font-mono font-medium transition-colors outline-none hover:underline',
                                           variant === 'minimal'
                                             ? 'text-sm'
                                             : 'text-base',
@@ -741,116 +759,116 @@ export function SchemaVisualizer({
                                       </h4>
                                     )}
                                   </div>
-                                <span
-                                  className={cn(
-                                    'bg-muted/50 text-muted-foreground rounded-full font-mono',
-                                    variant === 'minimal'
-                                      ? 'px-2 py-0.5 text-[10px]'
-                                      : 'px-2.5 py-1 text-xs',
-                                  )}
-                                >
-                                  {table.resolvedColumns.length} columns
-                                </span>
-                              </div>
-
-                              {table.resolvedColumns.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                  <table
+                                  <span
                                     className={cn(
-                                      'w-full text-left',
+                                      'bg-muted/50 text-muted-foreground rounded-full font-mono',
                                       variant === 'minimal'
-                                        ? 'text-sm'
-                                        : 'text-base',
+                                        ? 'px-2 py-0.5 text-[10px]'
+                                        : 'px-2.5 py-1 text-xs',
                                     )}
                                   >
-                                    <thead>
-                                      <tr className="bg-muted/10 text-muted-foreground border-border/30 border-b text-xs tracking-wider uppercase">
-                                        <th
-                                          className={cn(
-                                            'w-1/3 font-medium',
-                                            variant === 'minimal'
-                                              ? 'px-3 py-1.5'
-                                              : 'px-4 py-2',
-                                          )}
-                                        >
-                                          Column
-                                        </th>
-                                        <th
-                                          className={cn(
-                                            'font-medium',
-                                            variant === 'minimal'
-                                              ? 'px-3 py-1.5'
-                                              : 'px-4 py-2',
-                                          )}
-                                        >
-                                          Type
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-border/30 divide-y">
-                                      {table.resolvedColumns.map((col: Column) => (
-                                        <tr
-                                          key={col.id}
-                                          className="hover:bg-muted/20 transition-colors"
-                                        >
-                                          <td
-                                            className={cn(
-                                              'text-foreground/90 break-all font-medium',
-                                              variant === 'minimal'
-                                                ? 'px-3 py-1.5 text-xs'
-                                                : 'px-4 py-2 text-sm',
-                                            )}
-                                          >
-                                            {col.name}
-                                          </td>
-                                          <td
-                                            className={cn(
-                                              'text-muted-foreground font-mono',
-                                              variant === 'minimal'
-                                                ? 'px-3 py-1.5 text-[10px]'
-                                                : 'px-4 py-2 text-xs',
-                                            )}
-                                          >
-                                            {col.data_type}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                    {table.resolvedColumns.length} columns
+                                  </span>
                                 </div>
-                              ) : null}
-                            </div>
-                          );
+
+                                {table.resolvedColumns.length > 0 ? (
+                                  <div className="overflow-x-auto">
+                                    <table
+                                      className={cn(
+                                        'w-full text-left',
+                                        variant === 'minimal'
+                                          ? 'text-sm'
+                                          : 'text-base',
+                                      )}
+                                    >
+                                      <thead>
+                                        <tr className="bg-muted/10 text-muted-foreground border-border/30 border-b text-xs tracking-wider uppercase">
+                                          <th
+                                            className={cn(
+                                              'w-1/3 font-medium',
+                                              variant === 'minimal'
+                                                ? 'px-3 py-1.5'
+                                                : 'px-4 py-2',
+                                            )}
+                                          >
+                                            Column
+                                          </th>
+                                          <th
+                                            className={cn(
+                                              'font-medium',
+                                              variant === 'minimal'
+                                                ? 'px-3 py-1.5'
+                                                : 'px-4 py-2',
+                                            )}
+                                          >
+                                            Type
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-border/30 divide-y">
+                                        {table.resolvedColumns.map(
+                                          (col: Column) => (
+                                            <tr
+                                              key={col.id}
+                                              className="hover:bg-muted/20 transition-colors"
+                                            >
+                                              <td
+                                                className={cn(
+                                                  'text-foreground/90 font-medium break-all',
+                                                  variant === 'minimal'
+                                                    ? 'px-3 py-1.5 text-xs'
+                                                    : 'px-4 py-2 text-sm',
+                                                )}
+                                              >
+                                                {col.name}
+                                              </td>
+                                              <td
+                                                className={cn(
+                                                  'text-muted-foreground font-mono',
+                                                  variant === 'minimal'
+                                                    ? 'px-3 py-1.5 text-[10px]'
+                                                    : 'px-4 py-2 text-xs',
+                                                )}
+                                              >
+                                                {col.data_type}
+                                              </td>
+                                            </tr>
+                                          ),
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
                           })}
                         </div>
                       )}
                       {showPaginationHere && (
                         <div
                           className={cn(
-                            'bg-muted/5 border-border/40 group/pagination flex items-center justify-between gap-2 overflow-hidden rounded-lg border px-2 py-1.5 shadow-xs transition-all hover:bg-muted/10 hover:shadow-md',
+                            'bg-muted/5 border-border/40 group/pagination hover:bg-muted/10 flex items-center justify-between gap-2 overflow-hidden rounded-lg border px-2 py-1.5 shadow-xs transition-all hover:shadow-md',
                             variant === 'minimal' ? 'mt-4 h-9' : 'mt-6 h-10',
                           )}
                         >
                           <div
                             className={cn(
-                              'text-muted-foreground/60 ml-2 select-none font-medium tracking-wider uppercase',
-                              variant === 'minimal'
-                                ? 'text-[10px]'
-                                : 'text-xs',
+                              'text-foreground ml-2 font-medium tracking-wider uppercase select-none',
+                              variant === 'minimal' ? 'text-[10px]' : 'text-xs',
                             )}
                           >
-                            <span className="text-foreground/80 font-semibold tabular-nums">
+                            <span className="text-foreground font-semibold tabular-nums">
                               {start + 1}
                             </span>
                             <span className="mx-0.5">–</span>
-                            <span className="text-foreground/80 font-semibold tabular-nums">
+                            <span className="text-foreground font-semibold tabular-nums">
                               {Math.min(
                                 start + SCHEMA_TABLES_PER_PAGE,
                                 allTables.length,
                               )}
                             </span>
                             <span className="mx-1 lowercase">of</span>
-                            <span className="text-foreground/80 font-semibold tabular-nums">
+                            <span className="text-foreground font-semibold tabular-nums">
                               {allTables.length}
                             </span>
                           </div>
@@ -859,7 +877,7 @@ export function SchemaVisualizer({
                               variant="ghost"
                               size="icon"
                               className={cn(
-                                'transition-all hover:bg-background/80 hover:text-primary',
+                                'hover:bg-background/80 hover:text-primary transition-all',
                                 variant === 'minimal' ? 'h-7 w-7' : 'h-8 w-8',
                               )}
                               onClick={() => {
@@ -879,14 +897,14 @@ export function SchemaVisualizer({
                             </Button>
                             <div
                               className={cn(
-                                'text-foreground/90 min-w-[2.5rem] select-none text-center font-bold tabular-nums',
+                                'text-foreground min-w-[2.5rem] text-center font-bold tabular-nums select-none',
                                 variant === 'minimal'
                                   ? 'text-[10px]'
                                   : 'text-xs',
                               )}
                             >
                               {pageForSchema}
-                              <span className="text-muted-foreground/30 mx-1 font-normal">
+                              <span className="text-foreground mx-1 font-normal">
                                 /
                               </span>
                               {totalPagesForSchema}
@@ -895,7 +913,7 @@ export function SchemaVisualizer({
                               variant="ghost"
                               size="icon"
                               className={cn(
-                                'transition-all hover:bg-background/80 hover:text-primary',
+                                'hover:bg-background/80 hover:text-primary transition-all',
                                 variant === 'minimal' ? 'h-7 w-7' : 'h-8 w-8',
                               )}
                               onClick={() => {
