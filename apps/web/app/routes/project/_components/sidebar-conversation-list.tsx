@@ -191,31 +191,14 @@ export function SidebarConversationHistory({
   }, [filteredConversations, bookmarkedIdsSet, selectionOrder]);
 
   const MAX_SIDEBAR_CHATS = 6;
-  const limitedPinnedConversations = useMemo(() => {
-    const base = pinnedConversations.slice(0, MAX_SIDEBAR_CHATS);
-    if (currentConversation && bookmarkedIdsSet.has(currentConversation.id)) {
-      const alreadyIncluded = base.some(
-        (conversation) => conversation.id === currentConversation.id,
-      );
-      if (!alreadyIncluded) {
-        return [...base, currentConversation];
-      }
-    }
-    return base;
-  }, [pinnedConversations, currentConversation, bookmarkedIdsSet]);
-
-  const limitedUnpinnedConversations = useMemo(() => {
-    const base = unpinnedConversations.slice(0, MAX_SIDEBAR_CHATS);
-    if (currentConversation && !bookmarkedIdsSet.has(currentConversation.id)) {
-      const alreadyIncluded = base.some(
-        (conversation) => conversation.id === currentConversation.id,
-      );
-      if (!alreadyIncluded) {
-        return [...base, currentConversation];
-      }
-    }
-    return base;
-  }, [unpinnedConversations, currentConversation, bookmarkedIdsSet]);
+  const limitedPinnedConversations = useMemo(
+    () => pinnedConversations.slice(0, MAX_SIDEBAR_CHATS),
+    [pinnedConversations],
+  );
+  const limitedUnpinnedConversations = useMemo(
+    () => unpinnedConversations.slice(0, MAX_SIDEBAR_CHATS),
+    [unpinnedConversations],
+  );
 
   const handleStartEdit = (conversationId: string, currentTitle: string) => {
     setEditingId(conversationId);
