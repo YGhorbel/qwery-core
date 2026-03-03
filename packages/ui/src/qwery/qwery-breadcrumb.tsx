@@ -112,14 +112,10 @@ export function NodeDropdown({
     setSearch('');
   };
 
-  if (!current) {
-    return <BreadcrumbPage>{loadingLabel}</BreadcrumbPage>;
-  }
-
-  const isEditing = config.isEditingTitle && isLast;
-  const editValue = config.editTitleValue ?? current.name;
+  const isEditing = Boolean(config.isEditingTitle && isLast && current);
+  const editValue = config.editTitleValue ?? current?.name ?? '';
   const trimmedEdit = editValue.trim();
-  const canSave = !!trimmedEdit && trimmedEdit !== current.name;
+  const canSave = !!trimmedEdit && trimmedEdit !== current?.name;
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -128,6 +124,10 @@ export function NodeDropdown({
       editInputRef.current.select();
     }
   }, [isEditing]);
+
+  if (!current) {
+    return <BreadcrumbPage>{loadingLabel}</BreadcrumbPage>;
+  }
 
   return (
     <Popover
@@ -169,7 +169,7 @@ export function NodeDropdown({
                 }}
                 disabled={!canSave}
                 aria-disabled={!canSave}
-                className="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-500/10 disabled:text-emerald-500/40 disabled:hover:bg-transparent flex size-6 items-center justify-center rounded transition-colors"
+                className="flex size-6 items-center justify-center rounded text-emerald-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 disabled:text-emerald-500/40 disabled:hover:bg-transparent"
                 aria-label="Confirm"
               >
                 <Check className="size-3.5" />

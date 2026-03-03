@@ -198,7 +198,12 @@ export default function NotebookPage() {
         conversationId: notebookConversation.data?.slug, // Pass conversationSlug for DuckDB execution (Google Sheets)
       });
     },
-    [savedDatasources.data, runQueryMutation, notebookConversation.data?.slug],
+    [
+      savedDatasources.data,
+      runQueryMutation,
+      notebookConversation.data?.slug,
+      t,
+    ],
   );
 
   // Run query with agent mutation
@@ -735,7 +740,7 @@ export default function NotebookPage() {
       console.error('Failed to save notebook:', error);
       toast.error(getErrorKey(error, t));
     }
-  }, [normalizedNotebook, savedDatasources.data, saveNotebookMutation]);
+  }, [normalizedNotebook, savedDatasources.data, saveNotebookMutation, t]);
 
   const handleDiscardOnly = useCallback(() => {
     if (normalizedNotebook?.id) {

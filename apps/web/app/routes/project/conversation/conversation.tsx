@@ -38,7 +38,7 @@ const GENERIC_CHAT_SUGGESTIONS = [
 export default function ConversationPage() {
   const slug = useParams().slug;
   const navigate = useNavigate();
-  const { repositories, workspace } = useWorkspace();
+  const { repositories, workspace: _workspace } = useWorkspace();
   const { t } = useTranslation('common');
   const agentRef = useRef<AgentUIWrapperRef>(null);
   const hasAutoSentRef = useRef(false);
