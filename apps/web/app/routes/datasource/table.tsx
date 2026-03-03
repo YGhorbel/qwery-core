@@ -50,8 +50,7 @@ export default function TablePage(props: Route.ComponentProps) {
     const tables = metadata.tables as Table[];
     return (
       tables.find(
-        (t) =>
-          (t.schema ?? 'main') === schema && t.name === tableName,
+        (t) => (t.schema ?? 'main') === schema && t.name === tableName,
       ) ?? null
     );
   }, [metadata, schema, tableName]);

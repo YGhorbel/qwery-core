@@ -54,8 +54,7 @@ export function createChatRoutes() {
 
         const repositories = await getRepositories();
         if (body.trigger === 'regenerate-message') {
-          const conversation =
-            await repositories.conversation.findBySlug(slug);
+          const conversation = await repositories.conversation.findBySlug(slug);
           if (conversation) {
             const convMessages =
               await repositories.message.findByConversationId(conversation.id);

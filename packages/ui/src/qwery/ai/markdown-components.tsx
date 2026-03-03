@@ -28,7 +28,7 @@ export const HeadingContext = createContext<{
   setCurrentHeading: (heading: string) => void;
 }>({
   currentHeading: '',
-  setCurrentHeading: () => { },
+  setCurrentHeading: () => {},
 });
 
 // Create a factory function that returns components with context access
@@ -416,9 +416,9 @@ export const createAgentMarkdownComponents = (): Components => {
               style={
                 codeIsSQL
                   ? {
-                    backgroundColor: 'transparent !important',
-                    color: 'inherit',
-                  }
+                      backgroundColor: 'transparent !important',
+                      color: 'inherit',
+                    }
                   : undefined
               }
             >

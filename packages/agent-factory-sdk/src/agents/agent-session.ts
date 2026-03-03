@@ -225,14 +225,14 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
 
     const lastFinishedMeta = lastFinished?.metadata as
       | {
-        summary?: boolean;
-        tokens?: {
-          input: number;
-          output: number;
-          reasoning: number;
-          cache: { read: number; write: number };
-        };
-      }
+          summary?: boolean;
+          tokens?: {
+            input: number;
+            output: number;
+            reasoning: number;
+            cache: { read: number; write: number };
+          };
+        }
       | undefined;
     const lastFinishedSummary = lastFinishedMeta?.summary;
     const lastFinishedTokens = lastFinishedMeta?.tokens;
@@ -257,9 +257,9 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
 
       const userMeta = lastUser?.metadata as
         | {
-          agent?: string;
-          model?: { providerID: string; modelID: string };
-        }
+            agent?: string;
+            model?: { providerID: string; modelID: string };
+          }
         | undefined;
       await SessionCompaction.create({
         conversationSlug,
@@ -389,12 +389,12 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     const systemPromptForLlm =
       agentInfo.systemPrompt !== undefined && agentInfo.systemPrompt !== ''
         ? [
-          SystemPrompt.provider(providerModel),
-          ...(await SystemPrompt.environment(providerModel)),
-          agentInfo.systemPrompt,
-        ]
-          .filter(Boolean)
-          .join('\n\n')
+            SystemPrompt.provider(providerModel),
+            ...(await SystemPrompt.environment(providerModel)),
+            agentInfo.systemPrompt,
+          ]
+            .filter(Boolean)
+            .join('\n\n')
         : agentInfo.systemPrompt;
 
     const metaToolIds = new Set([
@@ -421,8 +421,8 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       systemPrompt: systemPromptWithSuggestions,
       onFinish: closeMcp
         ? async () => {
-          await closeMcp();
-        }
+            await closeMcp();
+          }
         : undefined,
     });
 
@@ -604,10 +604,10 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     const firstUser = messages.find((m) => m.role === 'user');
     const userMessageText = firstUser
       ? (firstUser.parts
-        ?.filter((p) => p.type === 'text')
-        .map((p) => (p as { text: string }).text)
-        .join(' ')
-        .trim() ?? '')
+          ?.filter((p) => p.type === 'text')
+          .map((p) => (p as { text: string }).text)
+          .join(' ')
+          .trim() ?? '')
       : '';
 
     if (!shouldGenerateTitle || !userMessageText) {

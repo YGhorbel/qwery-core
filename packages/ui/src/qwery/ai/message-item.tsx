@@ -81,7 +81,11 @@ function getMessageDatasources(
   if (msgIndex > 0) {
     for (let i = msgIndex - 1; i >= 0; i--) {
       const prev = messages[i];
-      if (normalizeUIRole(prev?.role) === 'user' && prev?.metadata && typeof prev.metadata === 'object') {
+      if (
+        normalizeUIRole(prev?.role) === 'user' &&
+        prev?.metadata &&
+        typeof prev.metadata === 'object'
+      ) {
         const meta = prev.metadata as Record<string, unknown>;
         if (Array.isArray(meta.datasources)) {
           const resolved = resolveIds(meta.datasources as string[]);
@@ -268,7 +272,7 @@ function MessageItemComponent({
           <div
             className={cn(
               hasAssistantParts &&
-              'animate-in fade-in slide-in-from-bottom-4 mt-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300',
+                'animate-in fade-in slide-in-from-bottom-4 mt-4 flex max-w-full min-w-0 items-start gap-3 overflow-x-hidden duration-300',
             )}
           >
             {hasAssistantParts && (
@@ -279,7 +283,7 @@ function MessageItemComponent({
             <div
               className={cn(
                 hasAssistantParts &&
-                'flex min-w-0 flex-1 flex-col gap-2 pr-2 sm:pr-4',
+                  'flex min-w-0 flex-1 flex-col gap-2 pr-2 sm:pr-4',
                 !hasAssistantParts && 'w-full',
               )}
             >
@@ -389,7 +393,7 @@ function MessageItemComponent({
                             )}
                           >
                             {isEditing &&
-                              normalizeUIRole(message.role) === 'user' ? (
+                            normalizeUIRole(message.role) === 'user' ? (
                               (() => {
                                 const { text: _cleanText, context } =
                                   parseMessageWithContext(part.text);
@@ -400,37 +404,37 @@ function MessageItemComponent({
                                   <>
                                     {(hasContext ||
                                       (datasources && pluginLogoMap)) && (
-                                        <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
-                                          {hasContext ? (
-                                            <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
-                                              <span className="font-medium">
-                                                Context:{' '}
-                                              </span>
-                                              {context.lastAssistantResponse?.substring(
-                                                0,
-                                                100,
-                                              )}
-                                              {(context.lastAssistantResponse
-                                                ?.length ?? 0) > 100 && '...'}
-                                            </div>
-                                          ) : (
-                                            <div className="flex-1" />
-                                          )}
-                                          {datasources && pluginLogoMap && (
-                                            <DatasourceSelector
-                                              selectedDatasources={
-                                                editDatasources
-                                              }
-                                              onSelectionChange={
-                                                onEditDatasourcesChange
-                                              }
-                                              datasources={datasources}
-                                              pluginLogoMap={pluginLogoMap}
-                                              variant="badge"
-                                            />
-                                          )}
-                                        </div>
-                                      )}
+                                      <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
+                                        {hasContext ? (
+                                          <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
+                                            <span className="font-medium">
+                                              Context:{' '}
+                                            </span>
+                                            {context.lastAssistantResponse?.substring(
+                                              0,
+                                              100,
+                                            )}
+                                            {(context.lastAssistantResponse
+                                              ?.length ?? 0) > 100 && '...'}
+                                          </div>
+                                        ) : (
+                                          <div className="flex-1" />
+                                        )}
+                                        {datasources && pluginLogoMap && (
+                                          <DatasourceSelector
+                                            selectedDatasources={
+                                              editDatasources
+                                            }
+                                            onSelectionChange={
+                                              onEditDatasourcesChange
+                                            }
+                                            datasources={datasources}
+                                            pluginLogoMap={pluginLogoMap}
+                                            variant="badge"
+                                          />
+                                        )}
+                                      </div>
+                                    )}
                                     <div className="group w-full max-w-full min-w-0">
                                       <Message
                                         from={message.role}
@@ -544,13 +548,13 @@ function MessageItemComponent({
                                                 className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                                                 title={
                                                   copiedMessagePartId ===
-                                                    `${message.id}-${i}`
+                                                  `${message.id}-${i}`
                                                     ? t('sidebar.copied')
                                                     : t('sidebar.copy')
                                                 }
                                               >
                                                 {copiedMessagePartId ===
-                                                  `${message.id}-${i}` ? (
+                                                `${message.id}-${i}` ? (
                                                   <CheckIcon className="size-3 text-green-600" />
                                                 ) : (
                                                   <CopyIcon className="size-3" />
@@ -632,13 +636,13 @@ function MessageItemComponent({
                                                   className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                                                   title={
                                                     copiedMessagePartId ===
-                                                      `${message.id}-${i}`
+                                                    `${message.id}-${i}`
                                                       ? t('sidebar.copied')
                                                       : t('sidebar.copy')
                                                   }
                                                 >
                                                   {copiedMessagePartId ===
-                                                    `${message.id}-${i}` ? (
+                                                  `${message.id}-${i}` ? (
                                                     <CheckIcon className="size-3 text-green-600" />
                                                   ) : (
                                                     <CopyIcon className="size-3" />
@@ -769,13 +773,13 @@ function MessageItemComponent({
                                         className="h-7 w-7"
                                         title={
                                           copiedMessagePartId ===
-                                            `${message.id}-${i}`
+                                          `${message.id}-${i}`
                                             ? 'Copied!'
                                             : 'Copy'
                                         }
                                       >
                                         {copiedMessagePartId ===
-                                          `${message.id}-${i}` ? (
+                                        `${message.id}-${i}` ? (
                                           <CheckIcon className="size-3 text-green-600" />
                                         ) : (
                                           <CopyIcon className="size-3" />
@@ -958,14 +962,14 @@ function MessageItemComponent({
                               )}
                               open={
                                 openToolPartKeys !== undefined &&
-                                  openToolPartKeys !== null
+                                openToolPartKeys !== null
                                   ? openToolPartKeys.has(toolPartKey)
                                   : undefined
                               }
                               onOpenChange={
                                 onToolPartOpenChange
                                   ? (open) =>
-                                    onToolPartOpenChange(toolPartKey, open)
+                                      onToolPartOpenChange(toolPartKey, open)
                                   : undefined
                               }
                               defaultOpenWhenUncontrolled={isLastPart}
@@ -999,14 +1003,14 @@ function MessageItemComponent({
                             )}
                             open={
                               openToolPartKeys !== undefined &&
-                                openToolPartKeys !== null
+                              openToolPartKeys !== null
                                 ? openToolPartKeys.has(toolPartKey)
                                 : undefined
                             }
                             onOpenChange={
                               onToolPartOpenChange
                                 ? (open) =>
-                                  onToolPartOpenChange(toolPartKey, open)
+                                    onToolPartOpenChange(toolPartKey, open)
                                 : undefined
                             }
                             defaultOpenWhenUncontrolled={

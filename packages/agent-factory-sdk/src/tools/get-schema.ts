@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import type { DatasourceMetadata, Table, Column, Schema } from '@qwery/domain/entities';
+import type {
+  DatasourceMetadata,
+  Table,
+  Column,
+  Schema,
+} from '@qwery/domain/entities';
 import { Tool } from './tool';
 import {
   ExtensionsRegistry,
@@ -12,9 +17,17 @@ import { Repositories } from '@qwery/domain/repositories';
 const DESCRIPTION = `Get schema information (columns, data types) for attached datasource(s) using their native drivers.
 Returns column names and types for all tables/views. When multiple datasources are attached, returns merged schema for all.`;
 
-function schemaPrefix(datasource: { name?: string | null; slug?: string | null; id: string }): string {
+function schemaPrefix(datasource: {
+  name?: string | null;
+  slug?: string | null;
+  id: string;
+}): string {
   const raw = datasource.name || datasource.slug || datasource.id;
-  return String(raw).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '') || datasource.id;
+  return (
+    String(raw)
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '') || datasource.id
+  );
 }
 
 export const GetSchemaTool = Tool.define('getSchema', {
@@ -54,7 +67,8 @@ export const GetSchemaTool = Tool.define('getSchema', {
       attachedDatasources.map(async (datasourceId) => {
         let datasourceDisplayName: string | undefined;
         try {
-          const datasource = await repositories.datasource.findById(datasourceId);
+          const datasource =
+            await repositories.datasource.findById(datasourceId);
           if (!datasource) {
             return {
               datasourceId,
@@ -174,11 +188,8 @@ export const GetSchemaTool = Tool.define('getSchema', {
       const errorSummary =
         schemaErrors.length > 0
           ? schemaErrors
-            .map(
-              (e) =>
-                `${e.datasourceName ?? e.datasourceId}: ${e.error}`,
-            )
-            .join('; ')
+              .map((e) => `${e.datasourceName ?? e.datasourceId}: ${e.error}`)
+              .join('; ')
           : 'Check that datasources exist and have a supported driver.';
       throw new Error(
         `Could not load schema for any attached datasource. ${errorSummary}`,

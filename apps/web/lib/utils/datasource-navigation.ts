@@ -10,10 +10,11 @@ export interface DatasourceItemLike {
 }
 
 function slugify(s: string): string {
-  return String(s)
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9_-]/g, '')
-    || s;
+  return (
+    String(s)
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '') || s
+  );
 }
 
 export function resolveDatasource(
