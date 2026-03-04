@@ -187,10 +187,12 @@ function AppContent({
           canGoBack={canGoBack}
           canGoForward={canGoForward}
         />
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <RootProviders theme={theme as 'light' | 'dark' | 'system' | undefined} language={'en'}>
-            <Outlet />
-          </RootProviders>
+        <div className="desktop-content-area flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <RootProviders theme={theme as 'light' | 'dark' | 'system' | undefined} language={'en'}>
+              <Outlet />
+            </RootProviders>
+          </div>
         </div>
       </div>
     </>

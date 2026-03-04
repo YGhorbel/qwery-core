@@ -35,7 +35,7 @@ function PageWithHeaderSidebar(props: PageProps) {
   } = getSlotsFromPage(props);
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden overflow-x-hidden">
+    <div className="page-root flex h-screen w-screen flex-col overflow-hidden overflow-x-hidden">
       {/* Topbar */}
       <div
         className={cn(
