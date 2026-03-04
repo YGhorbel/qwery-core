@@ -323,7 +323,7 @@ export const ToolContent = ({
     <CollapsibleContent
       className={cn(
         'data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden',
-        isMinimal && 'border-border/50 ml-6 border-l pl-2 text-sm',
+        isMinimal && 'ml-6 pl-2 text-sm',
         className,
       )}
       {...props}
