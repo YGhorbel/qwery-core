@@ -45,4 +45,3 @@ export function updateWorkspaceProjectInLocalStorage(
     window.dispatchEvent(new Event('workspace-updated'));
   }
 }
-

@@ -54,6 +54,7 @@ const extensionsLoaderSrc = path.resolve(
 );
 
 const lockDir = path.resolve(here, '..', '..', '.extensions-build.lock');
+const LOCK_STALE_MS = 120_000;
 
 async function withLock(fn) {
   const maxWait = 60000;
@@ -65,6 +66,15 @@ async function withLock(fn) {
       break;
     } catch (err) {
       if (err.code !== 'EEXIST') throw err;
+      try {
+        const stat = await fs.stat(lockDir);
+        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
+          await fs.rmdir(lockDir);
+          continue;
+        }
+      } catch {
+        // ignore
+      }
       await new Promise((r) => setTimeout(r, step));
       waited += step;
     }

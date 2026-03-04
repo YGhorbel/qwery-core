@@ -8,6 +8,7 @@ import { cn } from '@qwery/ui/utils';
 import { Spinner } from '@qwery/ui/spinner';
 import { RootProviders } from '../../web/components/root-providers';
 import { Titlebar } from './components/titlebar';
+import { StatusBar } from './components/status-bar';
 import { initDesktopApi } from './lib/desktop-api';
 import { useMenuActions, type MenuActionId } from './hooks/use-menu-actions';
 import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts';
@@ -194,6 +195,7 @@ function AppContent({
             </RootProviders>
           </div>
         </div>
+        <StatusBar />
       </div>
     </>
   );

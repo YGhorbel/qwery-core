@@ -4,6 +4,7 @@
 
 :root {
   --titlebar-height: 2.5rem;
+  --statusbar-height: 24px;
   --desktop-radius: 6px;
   --desktop-spacing: 0.5rem;
   --desktop-font-size: 14px;
@@ -23,7 +24,7 @@ html.desktop-app .min-h-screen {
 }
 
 html.desktop-app .desktop-content-area {
-  height: calc(100vh - var(--titlebar-height));
+  height: calc(100vh - var(--titlebar-height) - var(--statusbar-height));
 }
 
 html.desktop-app .desktop-content-area > * {
@@ -164,4 +165,39 @@ html.desktop-app .desktop-content-area .page-root > div[class*="flex"][class*="m
 
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* ---------------------------------- */
+/*  Status Bar                        */
+/* ---------------------------------- */
+
+.desktop-status-bar {
+  height: var(--statusbar-height);
+  min-height: var(--statusbar-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted-foreground, rgba(0, 0, 0, 0.6));
+  background: var(--sidebar, hsl(0 0% 98%));
+  border-top: 1px solid var(--border, hsl(0 0% 90%));
+}
+
+.dark .desktop-status-bar {
+  color: rgba(255, 255, 255, 0.6);
+  background: var(--sidebar);
+  border-top-color: var(--border);
+}
+
+.desktop-status-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.desktop-status-bar__item + .desktop-status-bar__item {
+  margin-left: 1rem;
 }

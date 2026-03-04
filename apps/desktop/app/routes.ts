@@ -7,6 +7,7 @@ import {
 
 const rootRoutes = [
   route('version', "../../web/app/routes/version.tsx"),
+  route('healthcheck', "../../web/app/routes/healthcheck.ts"),
 ];
 
 const appRoutes = layout("../../web/app/routes/layout/layout.tsx", [
