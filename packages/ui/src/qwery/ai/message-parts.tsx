@@ -1795,7 +1795,10 @@ export function ToolPart({
     }
 
     // Handle getSchema - streaming/loading, then schema when output
-    if (part.type === 'tool-getSchema' || part.type === 'tool-getSchemaDetailed') {
+    if (
+      part.type === 'tool-getSchema' ||
+      part.type === 'tool-getSchemaDetailed'
+    ) {
       const input = part.input as { viewNames?: string[] } | null;
       if (!part.output && part.input != null) {
         const isInputStreaming = part.state === 'input-streaming';

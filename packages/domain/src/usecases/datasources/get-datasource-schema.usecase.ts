@@ -1,6 +1,9 @@
 import { UseCase } from '../usecase';
 import type { Result } from '../../common';
-import type { CompactDatasourceSchema, DatasourceMetadata } from '../../entities';
+import type {
+  CompactDatasourceSchema,
+  DatasourceMetadata,
+} from '../../entities';
 
 export type GetSchemaMode = 'compact' | 'legacy';
 

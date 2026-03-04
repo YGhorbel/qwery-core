@@ -38,7 +38,8 @@ export const GetSchemaTool = Tool.define('getSchema', {
     });
 
     if (!result.success || !result.value) {
-      const message = result.error?.message ?? 'Unable to fetch datasource schema';
+      const message =
+        result.error?.message ?? 'Unable to fetch datasource schema';
       throw new Error(message);
     }
 

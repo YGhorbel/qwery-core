@@ -22,7 +22,9 @@ export class GetDatasourceSchemaService implements GetDatasourceSchemaUseCase {
     input: GetDatasourceSchemaInput,
   ): Promise<Result<GetDatasourceSchemaOutput, GetDatasourceSchemaError>> {
     const mode = input.mode ?? 'compact';
-    const datasource = await this.datasourceRepository.findById(input.datasourceId);
+    const datasource = await this.datasourceRepository.findById(
+      input.datasourceId,
+    );
 
     if (!datasource) {
       return Result.fail({
@@ -34,10 +36,13 @@ export class GetDatasourceSchemaService implements GetDatasourceSchemaUseCase {
 
     let metadata;
     try {
-      metadata = await this.datasourceMetadataRepository.getMetadata(datasource);
+      metadata =
+        await this.datasourceMetadataRepository.getMetadata(datasource);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Unable to load datasource metadata';
+        error instanceof Error
+          ? error.message
+          : 'Unable to load datasource metadata';
       return Result.fail({
         code: 'SCHEMA_METADATA_UNAVAILABLE',
         message,

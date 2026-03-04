@@ -64,9 +64,11 @@ describe('schema tools', () => {
       },
     });
 
-    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue({
-      execute,
-    } as never);
+    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue(
+      {
+        execute,
+      } as never,
+    );
 
     const tool = GetSchemaTool as {
       execute: (
@@ -136,9 +138,11 @@ describe('schema tools', () => {
       },
     });
 
-    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue({
-      execute,
-    } as never);
+    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue(
+      {
+        execute,
+      } as never,
+    );
 
     const tool = GetSchemaTool as {
       execute: (
@@ -153,7 +157,10 @@ describe('schema tools', () => {
       datasourceId: 'ds-1',
       mode: 'legacy',
     });
-    expect((output as { schema: { tables: Array<{ bytes: number }> } }).schema.tables[0]?.bytes).toBe(123);
+    expect(
+      (output as { schema: { tables: Array<{ bytes: number }> } }).schema
+        .tables[0]?.bytes,
+    ).toBe(123);
   });
 
   it('always returns full metadata in getSchemaDetailed', async () => {
@@ -194,9 +201,11 @@ describe('schema tools', () => {
       },
     });
 
-    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue({
-      execute,
-    } as never);
+    vi.spyOn(schemaToolsUtils, 'createDatasourceSchemaService').mockReturnValue(
+      {
+        execute,
+      } as never,
+    );
 
     const detailedTool = GetSchemaDetailedTool as {
       execute: (
@@ -205,13 +214,19 @@ describe('schema tools', () => {
       ) => Promise<unknown>;
     };
 
-    const output = await detailedTool.execute({}, createToolContext(repositories));
+    const output = await detailedTool.execute(
+      {},
+      createToolContext(repositories),
+    );
 
     expect(execute).toHaveBeenCalledWith({
       datasourceId: 'ds-1',
       mode: 'legacy',
     });
-    expect((output as { schema: { tables: Array<{ bytes: number }> } }).schema.tables[0]?.bytes).toBe(456);
+    expect(
+      (output as { schema: { tables: Array<{ bytes: number }> } }).schema
+        .tables[0]?.bytes,
+    ).toBe(456);
   });
 
   it('defaults unknown mode values to compact', () => {

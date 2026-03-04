@@ -9,7 +9,9 @@ import { NodeDatasourceMetadataRepository } from '../../adapters/node-datasource
 const DEFAULT_SCHEMA_MODE: GetSchemaMode = 'compact';
 const ESTIMATED_CHARS_PER_TOKEN = 4;
 
-export function resolveGetSchemaMode(envMode = process.env.QWERY_GET_SCHEMA_MODE) {
+export function resolveGetSchemaMode(
+  envMode = process.env.QWERY_GET_SCHEMA_MODE,
+) {
   if (envMode === 'legacy') {
     return 'legacy' as const;
   }
@@ -26,13 +28,17 @@ export function createDatasourceSchemaService(repositories: Repositories) {
 }
 
 export function logSchemaPayloadStats(
-  logger: { debug: (message: string, payload: Record<string, unknown>) => void },
+  logger: {
+    debug: (message: string, payload: Record<string, unknown>) => void;
+  },
   toolName: string,
   payload: unknown,
 ) {
   const serialized = JSON.stringify(payload);
   const payloadBytes = Buffer.byteLength(serialized, 'utf8');
-  const estimatedTokens = Math.ceil(serialized.length / ESTIMATED_CHARS_PER_TOKEN);
+  const estimatedTokens = Math.ceil(
+    serialized.length / ESTIMATED_CHARS_PER_TOKEN,
+  );
 
   logger.debug(`[${toolName}] Payload stats`, {
     payloadBytes,

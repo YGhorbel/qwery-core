@@ -97,7 +97,10 @@ describe('GetDatasourceSchemaService', () => {
       compactTransformer as never,
     );
 
-    const result = await service.execute({ datasourceId: 'ds-1', mode: 'compact' });
+    const result = await service.execute({
+      datasourceId: 'ds-1',
+      mode: 'compact',
+    });
 
     expect(result.success).toBe(true);
     expect(result.value?.mode).toBe('compact');
@@ -119,7 +122,9 @@ describe('GetDatasourceSchemaService', () => {
   it('returns Result.fail when metadata loading fails', async () => {
     const service = new GetDatasourceSchemaService(
       { findById: vi.fn().mockResolvedValue(datasource) } as never,
-      { getMetadata: vi.fn().mockRejectedValue(new Error('driver failed')) } as never,
+      {
+        getMetadata: vi.fn().mockRejectedValue(new Error('driver failed')),
+      } as never,
       { execute: vi.fn() } as never,
     );
 
