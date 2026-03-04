@@ -1,12 +1,15 @@
 /**
  * Final answer instruction.
- * Shared fragment for concise, synthetic user-facing replies: no SQL in text, no preamble/postamble, line limit.
+ * Shared fragment for concise, synthetic user-facing replies: no SQL in text,
+ * no preamble/postamble, line limit, and no full row reprints when results
+ * are already visible in the tool UI.
  */
 export const FINAL_ANSWER_PROMPT = `
 FINAL ANSWER - User-facing output:
 - Keep your final reply to 1–4 short sentences, or fewer than 4 lines, unless the user asks for detail.
 - Do not start with "Here is what I did" or end with long summaries of steps. Answer the user's question or summarize the result directly.
 - Never paste or describe the SQL query in your message. Results and charts are already shown in the UI.
+- Do not reprint full table rows that are already visible in the tool UI. Mention counts/highlights, and only show small requested slices.
 - Avoid conversational filler, preambles ("Okay, I will now..."), or postambles ("I have finished..."). Get straight to the insight or answer.
 
 Bad examples (do NOT do this):
