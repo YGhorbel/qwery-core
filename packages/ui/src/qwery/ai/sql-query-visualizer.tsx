@@ -53,14 +53,19 @@ export function SQLQueryVisualizer({
     ? `${exportFilename}-query`
     : 'query-results';
   const tableTitle = exportFilename
-    ? filenameToDisplayTitle(downloadFilename)
+    ? filenameToDisplayTitle(exportFilename)
     : 'Results';
 
   return (
     <div className={cn('flex w-full flex-col gap-3', className)}>
       {query && (
         <div className="relative flex w-full items-start gap-1">
-          <CodeBlock code={query} language="sql" className="w-full min-w-0">
+          <CodeBlock
+            code={query}
+            language="sql"
+            wrap
+            className="w-full min-w-0"
+          >
             <CodeBlockCopyButton className="text-muted-foreground hover:text-foreground h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" />
             {showPasteButton && onPasteToNotebook && (
               <Button

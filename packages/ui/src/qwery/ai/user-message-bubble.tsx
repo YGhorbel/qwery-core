@@ -6,7 +6,9 @@ import { cn } from '../../lib/utils';
 import { Message, MessageContent } from '../../ai-elements/message';
 import { scrollToElementBySelector } from './utils/scroll-utils';
 import { DatasourceBadges, type DatasourceItem } from './datasource-badge';
+import { DatasourceSelector } from './datasource-selector';
 import { cleanContextMarkers } from './utils/message-context';
+import { cleanSuggestionsForDisplay } from './utils/suggestion-pattern';
 import {
   HoverCard,
   HoverCardContent,
@@ -34,7 +36,10 @@ export interface UserMessageBubbleProps {
   }>; // Messages array to find user question
   className?: string;
   datasources?: DatasourceItem[];
+  allDatasources?: DatasourceItem[];
   pluginLogoMap?: Map<string, string>;
+  onEditStart?: (text: string, datasourceIds: string[]) => void;
+  isLastUserMessage?: boolean;
 }
 
 /**
@@ -277,7 +282,7 @@ function getPreviewText(
       </>
     );
 
-    return { preview, fullText: response };
+    return { preview, fullText: cleanSuggestionsForDisplay(response) };
   }
 
   // Fallback: if suggestion not found in response, show the suggestion text itself in bold
@@ -299,7 +304,7 @@ function getPreviewText(
     </>
   );
 
-  return { preview, fullText: response };
+  return { preview, fullText: cleanSuggestionsForDisplay(response) };
 }
 
 function getUserQuestionFromParentId(
@@ -384,7 +389,10 @@ export function UserMessageBubble({
   messageId,
   className,
   datasources,
+  allDatasources,
   pluginLogoMap,
+  onEditStart: _onEditStart,
+  isLastUserMessage = false,
 }: UserMessageBubbleProps) {
   const hasContext = context && context.lastAssistantResponse;
   const hasSourceSuggestion = context?.sourceSuggestionId;
@@ -442,15 +450,50 @@ export function UserMessageBubble({
     messageId,
   );
 
+  const showDatasourceSelectorOnHover =
+    hasSourceSuggestion &&
+    allDatasources &&
+    pluginLogoMap &&
+    allDatasources.length > 0;
+
+  const badgeVisibilityClass = isLastUserMessage
+    ? 'opacity-100'
+    : 'opacity-0 transition-opacity group-hover/msg:opacity-100';
+
   return (
     <div className="flex flex-col items-end gap-1.5">
-      {/* Datasources displayed above the message bubble */}
       {datasources && datasources.length > 0 && (
-        <div className="flex w-full max-w-[80%] min-w-0 justify-end overflow-x-hidden">
-          <DatasourceBadges
-            datasources={datasources}
-            pluginLogoMap={pluginLogoMap}
-          />
+        <div
+          className={cn(
+            'group/ds relative flex min-h-6 w-full max-w-[80%] min-w-0 justify-end overflow-x-hidden',
+            badgeVisibilityClass,
+          )}
+        >
+          {showDatasourceSelectorOnHover ? (
+            <>
+              <div className="opacity-100 transition-opacity group-hover/ds:opacity-0">
+                <DatasourceBadges
+                  datasources={datasources}
+                  pluginLogoMap={pluginLogoMap}
+                />
+              </div>
+              <div className="pointer-events-none absolute inset-0 flex justify-end opacity-0 transition-opacity group-hover/ds:opacity-100">
+                <DatasourceSelector
+                  selectedDatasources={datasources.map((d) => d.id)}
+                  onSelectionChange={() => {}}
+                  datasources={allDatasources}
+                  pluginLogoMap={pluginLogoMap}
+                  variant="badge"
+                  readOnly
+                />
+              </div>
+            </>
+          ) : (
+            <DatasourceBadges
+              datasources={datasources}
+              pluginLogoMap={pluginLogoMap}
+            />
+          )}
         </div>
       )}
       {/* Horizontal layout: go to suggestion button - previous response preview - message bubble */}
@@ -504,7 +547,7 @@ export function UserMessageBubble({
                   <div className="mt-1 shrink-0">
                     <BotAvatar size={6} isLoading={false} />
                   </div>
-                  <div className="prose prose-base dark:prose-invert [&_li]:text-foreground [&_p]:text-foreground [&_strong]:text-foreground max-w-none min-w-0 flex-1 [&_li]:my-1 [&_strong]:inline [&_strong]:font-semibold [&_strong]:not-italic [&_ul]:list-inside [&_ul]:list-disc [&_ul]:pl-6">
+                  <div className="prose prose-base dark:prose-invert [&_li]:text-foreground [&_li]:marker:text-foreground/90 [&_p]:text-foreground [&_strong]:text-foreground max-w-none min-w-0 flex-1 [&_li]:my-1 [&_strong]:inline [&_strong]:font-semibold [&_strong]:not-italic [&_ul]:ml-4 [&_ul]:list-outside [&_ul]:list-disc [&_ul]:pl-6">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={agentMarkdownComponents}
