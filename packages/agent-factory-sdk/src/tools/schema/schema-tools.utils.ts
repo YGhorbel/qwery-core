@@ -34,7 +34,7 @@ export function logSchemaPayloadStats(
   toolName: string,
   payload: unknown,
 ) {
-  const serialized = JSON.stringify(payload);
+  const serialized = JSON.stringify(payload) ?? 'null';
   const payloadBytes = Buffer.byteLength(serialized, 'utf8');
   const estimatedTokens = Math.ceil(
     serialized.length / ESTIMATED_CHARS_PER_TOKEN,

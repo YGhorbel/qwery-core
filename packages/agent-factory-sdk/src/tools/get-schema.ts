@@ -59,6 +59,7 @@ export const GetSchemaTool = Tool.define('getSchema', {
 
     const payload = {
       schema: schemaOutput.schema,
+      mode: schemaOutput.mode,
     };
 
     logSchemaPayloadStats(logger, 'GetSchemaTool', payload);
