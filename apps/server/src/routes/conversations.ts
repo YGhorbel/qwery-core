@@ -49,21 +49,35 @@ export function createConversationsRoutes() {
 
   app.post('/', zValidator('json', createBodySchema), async (c) => {
     try {
+      // #region agent log
+      const rawBody = await c.req.json().catch(() => ({}));
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:50','message':'POST /conversations - raw request body',data:{rawBody},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const body = c.req.valid('json');
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:52','message':'POST /conversations - validated body',data:{body,createdBy:body.createdBy,createdByType:typeof body.createdBy},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const repositories = await getRepositories();
 
-      const useCase = new CreateConversationService(repositories.conversation);
-      const conversation = await useCase.execute({
+      const input = {
         title: body.title,
         seedMessage: body.seedMessage,
         projectId: body.projectId ?? TUI_PROJECT_ID,
         taskId: body.taskId ?? TUI_TASK_ID,
         datasources: body.datasources ?? [],
         createdBy: body.createdBy ?? 'tui',
-      });
+      };
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:62','message':'POST /conversations - service input',data:{input,createdBy:input.createdBy,createdByType:typeof input.createdBy},timestamp:Date.now(),runId:'run1',hypothesisId:'A,C,D'})}).catch(()=>{});
+      // #endregion
+      const useCase = new CreateConversationService(repositories.conversation);
+      const conversation = await useCase.execute(input);
 
       return c.json(conversation, 201);
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:67','message':'POST /conversations - error caught',data:{error:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
+      // #endregion
       return handleDomainException(error);
     }
   });

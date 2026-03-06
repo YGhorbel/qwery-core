@@ -1,0 +1,81 @@
+ontology:
+  concepts:
+    - id: Customer
+      label: Customer
+      description: A customer entity representing a business customer
+      properties:
+        - id: name
+          label: Name
+          type: string
+          description: Customer full name
+        - id: email
+          label: Email Address
+          type: string
+          description: Customer email address
+        - id: phone
+          label: Phone Number
+          type: string
+          description: Customer contact phone number
+      relationships:
+        - target: Order
+          type: has_many
+          label: Orders
+          description: Orders placed by this customer
+
+    - id: Order
+      label: Order
+      description: An order placed by a customer
+      properties:
+        - id: order_number
+          label: Order Number
+          type: string
+          description: Unique order identifier
+        - id: total
+          label: Total Amount
+          type: number
+          description: Total order amount
+        - id: status
+          label: Order Status
+          type: string
+          description: Current status of the order
+        - id: created_at
+          label: Created At
+          type: timestamp
+          description: Order creation timestamp
+      relationships:
+        - target: Customer
+          type: belongs_to
+          label: Customer
+          description: Customer who placed this order
+        - target: Product
+          type: has_many
+          label: Products
+          description: Products in this order
+
+    - id: Product
+      label: Product
+      description: A product available for purchase
+      properties:
+        - id: name
+          label: Product Name
+          type: string
+          description: Name of the product
+        - id: price
+          label: Price
+          type: number
+          description: Product price
+        - id: sku
+          label: SKU
+          type: string
+          description: Stock keeping unit identifier
+      relationships:
+        - target: Order
+          type: belongs_to
+          label: Order
+          description: Order containing this product
+
+  inheritance:
+    - base: Person
+      extends:
+        - Customer
+        - Employee

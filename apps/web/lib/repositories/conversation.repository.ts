@@ -34,6 +34,9 @@ export class ConversationRepository extends IConversationRepository {
   }
 
   async create(entity: Conversation): Promise<Conversation> {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation.repository.ts:36','message':'ConversationRepository.create - entity being sent',data:{entity,createdBy:entity.createdBy,updatedBy:entity.updatedBy,createdByType:typeof entity.createdBy},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     return apiPost<Conversation>('/conversations', entity);
   }
 

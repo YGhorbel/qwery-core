@@ -90,6 +90,9 @@ export class ConversationEntity extends Entity<
   public static create(
     newConversation: CreateConversationInput,
   ): ConversationEntity {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation.type.ts:90','message':'ConversationEntity.create - input',data:{newConversation,createdBy:newConversation.createdBy,createdByType:typeof newConversation.createdBy},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const { id, slug } = generateIdentity();
     const now = new Date();
     const conversation: Conversation = {
@@ -106,11 +109,22 @@ export class ConversationEntity extends Entity<
       updatedBy: newConversation.createdBy,
       isPublic: false,
     };
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation.type.ts:108','message':'ConversationEntity.create - before schema parse',data:{conversation,createdBy:conversation.createdBy,updatedBy:conversation.updatedBy,createdByType:typeof conversation.createdBy},timestamp:Date.now(),runId:'run1',hypothesisId:'A,E'})}).catch(()=>{});
+    // #endregion
 
-    return plainToClass(
-      ConversationEntity,
-      ConversationSchema.parse(conversation),
-    );
+    try {
+      const parsed = ConversationSchema.parse(conversation);
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation.type.ts:112','message':'ConversationEntity.create - schema parse success',data:{parsedCreatedBy:parsed.createdBy,parsedUpdatedBy:parsed.updatedBy},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      return plainToClass(ConversationEntity, parsed);
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/eeeb0834-4ce3-4f73-8dd1-0acde8263000',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation.type.ts:116','message':'ConversationEntity.create - schema parse error',data:{error:error instanceof Error?error.message:String(error),errorDetails:error instanceof z.ZodError?error.errors:undefined,conversation,createdBy:conversation.createdBy,updatedBy:conversation.updatedBy},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      throw error;
+    }
   }
 
   public static update(

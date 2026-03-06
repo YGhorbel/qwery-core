@@ -28,6 +28,77 @@ services:
       - AZURE_RESOURCE_NAME=
       - AZURE_OPENAI_DEPLOYMENT=
       - ANTHROPIC_API_KEY=
+      # MinIO Configuration for Semantic Layer Storage
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY_ID=${MINIO_ACCESS_KEY_ID:-minioadmin}
+      - MINIO_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-qwery-semantic-layer}
+      - MINIO_REGION=${MINIO_REGION:-us-east-1}
+      - MINIO_USE_SSL=false
+      - MINIO_PATH_STYLE=true
+      # Redis Configuration for Semantic Layer Index
+      - REDIS_URL=redis://redis:6379
+      # NATS Configuration for Semantic Events
+      - NATS_URL=nats://nats:4222
+      - SEMANTIC_EVENTS_TOPIC=${SEMANTIC_EVENTS_TOPIC:-semantic-events}
+      # Semantic Layer Configuration
+      - MINIO_ONLY=${MINIO_ONLY:-true}
+      - LINK_PREDICTION_CONFIDENCE_THRESHOLD=${LINK_PREDICTION_CONFIDENCE_THRESHOLD:-0.6}
+      - LINK_PREDICTION_RATE_LIMIT=${LINK_PREDICTION_RATE_LIMIT:-1000}
+    depends_on:
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  minio:
+    image: minio/minio:latest
+    container_name: qwery-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY_ID:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_ACCESS_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  redis:
+    image: redis:7-alpine
+    container_name: qwery-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: qwery-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "-m", "8222"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -42,3 +113,5 @@ services:
 
 volumes:
   server-storage:
+  minio-data:
+  redis-data:

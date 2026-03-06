@@ -50,8 +50,10 @@ export function createDriverRoutes() {
       );
     }
 
+    let instance: Awaited<ReturnType<typeof getDriverInstance>> | null = null;
+    
     try {
-      const instance = await getDriverInstance(driver, {
+      instance = await getDriverInstance(driver, {
         config,
       });
 
@@ -63,7 +65,16 @@ export function createDriverRoutes() {
             data: { connected: true, message: 'ok' },
           });
         case 'metadata': {
+          logger.info('[DriverRoute] Fetching metadata', {
+            datasourceProvider,
+            driverId,
+          });
           const metadata = await instance.metadata();
+          logger.info('[DriverRoute] Metadata fetched successfully', {
+            datasourceProvider,
+            tablesCount: metadata.tables.length,
+            columnsCount: metadata.columns.length,
+          });
           return c.json({
             success: true,
             data: metadata,
@@ -83,8 +94,40 @@ export function createDriverRoutes() {
           return c.json({ error: 'Unknown action' }, 400);
       }
     } catch (error) {
-      logger.error({ error }, 'Error executing driver action');
+      logger.error(
+        {
+          error,
+          action,
+          datasourceProvider,
+          driverId,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        },
+        'Error executing driver action',
+      );
+      
+      // Clean up instance on error
+      if (instance && typeof instance.close === 'function') {
+        try {
+          await instance.close();
+        } catch (closeError) {
+          logger.warn({ closeError }, 'Error closing driver instance');
+        }
+      }
+      
       const message = formatError(error);
+      
+      // Provide more helpful error messages for timeout
+      if (message.includes('timed out') || message.includes('timeout')) {
+        return c.json(
+          {
+            error: `Connection timeout: ${message}. This may indicate network issues, slow database response, or the database is unreachable. Please check your connection settings and try again.`,
+            timeout: true,
+          },
+          504, // Gateway Timeout
+        );
+      }
+      
       return c.json({ error: message }, 500);
     }
   });

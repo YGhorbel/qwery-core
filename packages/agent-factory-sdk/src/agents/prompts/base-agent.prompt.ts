@@ -57,4 +57,16 @@ EXPORT FILENAME (runQuery / runQueries):
 - **exportFilename**: lowercase letters, numbers, and hyphens only; no spaces; max 50 characters (e.g. \`machines-active-status\`, \`top-10-orders-by-revenue\`).
 - For **runQuery**: include one \`exportFilename\` in the tool call.
 - For **runQueries**: include one \`exportFilename\` per item in \`queries\` (same order as each \`query\`).
+
+SEMANTIC QUERIES:
+- When a datasource has ontology and mappings available, **prefer runSemanticQuery over runQuery**
+- Semantic queries understand business concepts (Customer, Order, Product) instead of technical table names
+- Use **runSemanticQuery** for natural language queries that map to ontology concepts (e.g., "show me top customers by revenue")
+- Use **runQuery** only when:
+  - You have explicit SQL that the user wants to run directly
+  - The semantic layer is unavailable (no ontology or mappings)
+  - You need to run a specific technical query that doesn't map to semantic concepts
+- Before deciding which tool to use, check ontology availability using **getSemanticSchema** - if it returns a schema with concepts, use **runSemanticQuery**
+- Semantic queries provide better user experience by understanding business terminology and automatically handling joins
+- When using **runSemanticQuery**, the system will show reasoning steps explaining how the query was compiled
 `;

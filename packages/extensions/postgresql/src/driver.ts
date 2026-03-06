@@ -104,6 +104,9 @@ export function makePostgresDriver(context: DriverContext): IDataSourceDriver {
     },
 
     async metadata() {
+      // Use longer timeout for metadata operations (2 minutes) as they can take longer for large databases
+      const METADATA_TIMEOUT_MS = 120_000;
+      
       const rows = await withClient({ connectionUrl }, async (client) => {
         const result = await client.query<{
           table_schema: string;
@@ -124,7 +127,7 @@ export function makePostgresDriver(context: DriverContext): IDataSourceDriver {
           ORDER BY table_schema, table_name, ordinal_position;
         `);
         return result.rows;
-      });
+      }, METADATA_TIMEOUT_MS);
 
       const primaryKeyRows = await withClient({ connectionUrl }, async (client) => {
         const result = await client.query<{
@@ -144,7 +147,7 @@ export function makePostgresDriver(context: DriverContext): IDataSourceDriver {
             AND kcu.table_schema NOT IN ('information_schema', 'pg_catalog');
         `);
         return result.rows;
-      });
+      }, METADATA_TIMEOUT_MS);
 
       const foreignKeyRows = await withClient({ connectionUrl }, async (client) => {
         const result = await client.query<{
@@ -175,7 +178,7 @@ export function makePostgresDriver(context: DriverContext): IDataSourceDriver {
             AND kcu.table_schema NOT IN ('information_schema', 'pg_catalog');
         `);
         return result.rows;
-      });
+      }, METADATA_TIMEOUT_MS);
 
       return buildMetadataFromInformationSchema({
         driver: 'postgresql',

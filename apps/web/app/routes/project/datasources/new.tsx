@@ -711,7 +711,7 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
     }
 
     let config = values as Record<string, unknown>;
-    const userId = workspace.userId;
+    const userId = workspace.userId ?? '00000000-0000-0000-0000-000000000000';
 
     const validationError = validateProviderConfig(config);
     if (validationError) {

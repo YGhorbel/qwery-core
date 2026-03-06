@@ -213,11 +213,17 @@ export default function IndexPage() {
   useEffect(() => {
     if (project.data?.slug) {
       navigate(`/prj/${project.data.slug}`, { replace: true });
-    } else if (!workspace.projectId) {
-      // If no project yet, redirect to organizations page
+    } else if (project.error || !workspace.projectId) {
+      // If project not found (404) or no project ID, clear stale data and redirect
+      if (project.error && workspace.projectId) {
+        // Clear stale projectId from localStorage
+        const currentWorkspace = { ...workspace, projectId: undefined };
+        localStorage.setItem('qwery-workspace', JSON.stringify(currentWorkspace));
+        window.dispatchEvent(new Event('workspace-updated'));
+      }
       navigate('/organizations', { replace: true });
     }
-  }, [project.data?.slug, workspace.projectId, navigate]);
+  }, [project.data?.slug, project.error, workspace.projectId, navigate, workspace]);
 
   // Show skeleton while loading or if we have a project but haven't navigated yet
   if (project.isLoading || (workspace.projectId && project.data?.slug)) {

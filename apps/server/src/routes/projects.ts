@@ -208,6 +208,17 @@ export function createProjectsRoutes(
       const project = await useCase.execute(id);
       return c.json(project);
     } catch (error) {
+      const logger = await import('@qwery/shared/logger').then((m) =>
+        m.getLogger(),
+      );
+      const log = await logger;
+      log.debug(
+        {
+          projectId: c.req.param('id'),
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to get project',
+      );
       return handleDomainException(error);
     }
   });

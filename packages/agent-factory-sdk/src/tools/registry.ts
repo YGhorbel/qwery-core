@@ -13,6 +13,9 @@ import { SelectChartTypeTool } from './select-chart-type-tool';
 import { GenerateChartTool } from './generate-chart-tool';
 import { GetSkillTool } from './get-skill';
 import { TaskTool } from './task';
+import { MapSemanticOntologyTool } from './map-semantic-ontology';
+import { GetSemanticSchemaTool } from './get-semantic-schema';
+import { RunSemanticQueryTool } from './run-semantic-query';
 import { getLogger } from '@qwery/shared/logger';
 import { getMcpTools } from '../mcp/client.js';
 import { GetTodoByConversationService } from '@qwery/domain/services';
@@ -75,6 +78,9 @@ function registerTools() {
   tools.set(GenerateChartTool.id, GenerateChartTool as unknown as ToolInfo);
   tools.set(GetSkillTool.id, GetSkillTool as unknown as ToolInfo);
   tools.set(TaskTool.id, TaskTool as unknown as ToolInfo);
+  tools.set(MapSemanticOntologyTool.id, MapSemanticOntologyTool as unknown as ToolInfo);
+  tools.set(GetSemanticSchemaTool.id, GetSemanticSchemaTool as unknown as ToolInfo);
+  tools.set(RunSemanticQueryTool.id, RunSemanticQueryTool as unknown as ToolInfo);
 }
 
 function registerAgents() {

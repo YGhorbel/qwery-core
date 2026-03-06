@@ -21,6 +21,13 @@ export const RunQueryTool = Tool.define('runQuery', {
     exportFilename: ExportFilenameSchema.describe(
       'Short filename for the table export (lowercase, hyphens; e.g. machines-active-status)',
     ),
+    reasoningContext: z
+      .object({
+        concepts: z.array(z.string()).optional(),
+        reasoningSteps: z.array(z.unknown()).optional(),
+      })
+      .optional()
+      .describe('Optional reasoning context from semantic query layer'),
   }),
   async execute(params, ctx) {
     const { repositories, attachedDatasources } = ctx.extra as {

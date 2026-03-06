@@ -44,6 +44,7 @@
     "@qwery/domain": "workspace:*",
     "@qwery/extensions-loader": "workspace:*",
     "@qwery/extensions-sdk": "workspace:*",
+    "@qwery/semantic-layer": "workspace:*",
     "@qwery/shared": "workspace:*",
     "@qwery/telemetry": "workspace:*",
     "ai": "catalog:",

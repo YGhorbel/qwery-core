@@ -1,18 +1,11 @@
 import { Logger as LoggerInstance } from './logger';
 
-// Use globalThis to avoid importing node:process; that module is externalized in the
-// browser and cannot be accessed in client code. In Node, globalThis.process exists.
 const LOGGER =
   typeof globalThis !== 'undefined' && globalThis.process?.env?.LOGGER
     ? 'pino'
     : 'console';
 
-/*
- * Logger
- * By default, the logger is set to use Pino. To change the logger, update the import statement below.
- * to your desired logger implementation.
- */
-async function getLogger(): Promise<LoggerInstance> {
+export async function getLogger(): Promise<LoggerInstance> {
   switch (LOGGER) {
     case 'pino': {
       const { getPinoLogger } = await import('./impl/pino');
@@ -31,4 +24,4 @@ async function getLogger(): Promise<LoggerInstance> {
   }
 }
 
-export { getLogger };
+export default { getLogger };

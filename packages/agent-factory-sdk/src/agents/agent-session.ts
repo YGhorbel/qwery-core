@@ -19,6 +19,8 @@ import { SystemPrompt } from '../llm/system';
 import { v4 as uuidv4 } from 'uuid';
 import { loadDatasources } from '../tools/datasource-loader';
 import type { Datasource } from '@qwery/domain/entities';
+import { autoInitializeSemanticLayer } from '@qwery/semantic-layer/initialization/auto-initialize';
+import { getQueryRouter } from './utils/query-router';
 
 export type AgentSessionPromptInput = {
   conversationSlug: string;
@@ -284,6 +286,37 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       repositories.datasource,
     );
 
+    // Initialize query router with repositories for ontology-aware tool selection
+    const queryRouter = getQueryRouter();
+    if ('setRepositories' in queryRouter) {
+      (queryRouter as { setRepositories: (r: Repositories) => void }).setRepositories(repositories);
+    }
+
+    // Auto-initialize semantic layer for PostgreSQL datasources
+    // This runs in the background and doesn't block the agent loop
+    autoInitializeSemanticLayer({
+      datasources,
+      repositories,
+      ontologyVersion: '1.0.0',
+      getLanguageModel: async (provider: string, modelName: string) => {
+        try {
+          const model = Provider.getModel(provider, modelName);
+          return await Provider.getLanguage(model);
+        } catch (error) {
+          logger.warn('[AgentSession] Failed to get language model for semantic layer', {
+            error: error instanceof Error ? error.message : String(error),
+            provider,
+            modelName,
+          });
+          return null;
+        }
+      },
+    }).catch((error: unknown) => {
+      logger.warn('[AgentSession] Semantic layer auto-initialization failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
     const providerModel =
       typeof model === 'string'
         ? Provider.getModelFromString(model)
@@ -347,6 +380,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
         repositories,
         conversationId,
         attachedDatasources: input.datasources,
+        queryRouter,
       },
       messages: msgs,
       ask: async (req: AskRequest) => {

@@ -1,0 +1,87 @@
+{
+  "name": "@qwery/semantic-layer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "format": "prettier --check \"**/*.{ts,tsx,yaml,yml}\"",
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
+    "lint:fix": "eslint --cache --cache-location ./node_modules/.cache/eslint --fix .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --logHeapUsage --coverage --silent",
+    "test:watch": "vitest",
+    "migrate": "tsx src/cli/migrate.ts"
+  },
+  "exports": {
+    "./schema": "./src/models/ontology.schema.ts",
+    "./loader": "./src/loader/yaml-loader.ts",
+    "./migrations": "./src/schema/migrations/index.ts",
+    "./db/client": "./src/db/client.ts",
+    "./mapping/generator": "./src/mapping/generator.ts",
+    "./mapping/resolver": "./src/mapping/resolver.ts",
+    "./mapping/store": "./src/mapping/store.ts",
+    "./ontology/loader": "./src/ontology/loader.ts",
+    "./compiler/semantic-compiler": "./src/compiler/semantic-compiler.ts",
+    "./compiler/intent-extractor": "./src/compiler/intent-extractor.ts",
+    "./compiler/types": "./src/compiler/types.ts",
+    "./cache/semantic-cache": "./src/cache/semantic-cache.ts",
+    "./post-processor/explainer": "./src/post-processor/explainer.ts",
+    "./initialization/auto-initialize": "./src/initialization/auto-initialize.ts",
+    "./storage/minio-client": "./src/storage/minio-client.ts",
+    "./schema/ontology-schema-view": "./src/schema/ontology-schema-view.ts",
+    "./reasoning/cot-reasoner": "./src/reasoning/cot-reasoner.ts",
+    "./reasoning/format-reasoning": "./src/reasoning/format-reasoning.ts",
+    "./ontology/change-detector": "./src/ontology/change-detector.ts",
+    "./ontology/version-manager": "./src/ontology/version-manager.ts",
+    "./ontology/continuous-evolution": "./src/ontology/continuous-evolution.ts",
+    "./ontology/evolution-orchestrator": "./src/ontology/evolution-orchestrator.ts",
+    "./ontology/abstract-layer": "./src/ontology/abstract-layer.ts",
+    "./ontology/concrete-layer": "./src/ontology/concrete-layer.ts",
+    "./ontology/multi-source-builder": "./src/ontology/multi-source-builder.ts",
+    "./ontology/concept-aligner": "./src/ontology/concept-aligner.ts",
+    "./graph/value-pattern-analyzer": "./src/graph/value-pattern-analyzer.ts",
+    "./graph/embedding-alignment": "./src/graph/embedding-alignment.ts",
+    "./graph/llm-graph-reasoner": "./src/graph/llm-graph-reasoner.ts",
+    "./reasoning/query-reasoner": "./src/reasoning/query-reasoner.ts",
+    "./training/data-collector": "./src/training/data-collector.ts",
+    "./training/ontology-trainer": "./src/training/ontology-trainer.ts",
+    "./training/learning-loop": "./src/training/learning-loop.ts",
+    "./training/structured-data-trainer": "./src/training/structured-data-trainer.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.936.0",
+    "@qwery/agent-factory-sdk": "workspace:*",
+    "@qwery/extensions-loader": "workspace:*",
+    "@qwery/extensions-sdk": "workspace:*",
+    "@qwery/shared": "workspace:*",
+    "ai": "catalog:",
+    "nats": "^2.20.0",
+    "pg": "^8.13.1",
+    "redis": "^4.7.0",
+    "semver": "^7.7.1",
+    "yaml": "^2.8.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@qwery/eslint-config": "workspace:*",
+    "@qwery/prettier-config": "workspace:*",
+    "@qwery/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "^8.11.10",
+    "@types/redis": "^4.0.11",
+    "@vitest/coverage-istanbul": "catalog:",
+    "eslint": "^9.39.0",
+    "tsx": "^4.20.6",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "prettier": "@qwery/prettier-config",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  }
+}

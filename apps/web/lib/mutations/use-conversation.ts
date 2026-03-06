@@ -15,6 +15,8 @@ import {
   UpdateConversationInput,
 } from '@qwery/domain/usecases';
 
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
 export function getConversationKey(slug: string) {
   return ['conversation', slug];
 }
@@ -32,7 +34,10 @@ export function useConversation(
       const createConversationService = new CreateConversationService(
         conversationRepository,
       );
-      return await createConversationService.execute(conversationDTO);
+      return await createConversationService.execute({
+        ...conversationDTO,
+        createdBy: conversationDTO.createdBy || SYSTEM_USER_ID,
+      });
     },
     onSuccess: (conversation: ConversationOutput) => {
       queryClient.invalidateQueries({
