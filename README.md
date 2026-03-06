@@ -70,9 +70,14 @@ pnpm install
 # Start development server
 pnpm server:dev
 pnpm web:dev
+
+# start the eval server
+pnpm eval:dev
+pnpm eval:ui
 ```
 
 The web app will be available at `http://localhost:3000`
+the eval front will be available at `http://localhost:5090`
 
 **Using apps/web with apps/server**: To have the web app use the API server (file repositories) instead of in-app API routes, start the server (`pnpm --filter server dev`, port 4096) and set `VITE_API_URL=http://localhost:4096/api` in `apps/web/.env`. Then start the web app (`pnpm --filter web dev`). Flow: Web Browser → SSR/Loader → apps/server Hono.
 
