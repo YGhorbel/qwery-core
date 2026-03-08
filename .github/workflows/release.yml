@@ -64,7 +64,17 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Copy api-server to desktop binaries
-        run: node apps/desktop/scripts/copy-api-server.cjs
+        run: |
+          node -e "
+          const fs=require('fs'),path=require('path');
+          const m={darwin:process.arch==='arm64'?'aarch64-apple-darwin':'x86_64-apple-darwin',win32:'x86_64-pc-windows-msvc',linux:process.arch==='arm64'?'aarch64-unknown-linux-gnu':'x86_64-unknown-linux-gnu'};
+          const t=m[process.platform]||'aarch64-apple-darwin';
+          const n='api-server-'+t, src=path.join('apps/server/dist',n), destDir='apps/desktop/src-tauri/binaries';
+          if(!fs.existsSync(src)){console.error('Missing '+src); process.exit(1);}
+          fs.mkdirSync(destDir,{recursive:true});
+          fs.copyFileSync(src, path.join(destDir,n));
+          console.log('Copied '+n);
+          "
 
       - name: Build desktop app
         run: pnpm desktop:package
