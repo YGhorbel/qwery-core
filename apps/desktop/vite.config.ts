@@ -115,6 +115,10 @@ export default defineConfig(async () => ({
         target: 'http://localhost:4096',
         changeOrigin: true,
       },
+      '/health': {
+        target: 'http://localhost:4096',
+        changeOrigin: true,
+      },
       '/qwery': {
         target: 'http://localhost:4096',
         changeOrigin: true,
@@ -128,8 +132,7 @@ export default defineConfig(async () => ({
       }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri` and build artifacts
-      ignored: ["**/src-tauri/**", "**/target/**"],
+      ignored: ["**/src-tauri/**", "**/target/**", "**/build/**"],
     },
   },
   optimizeDeps: {

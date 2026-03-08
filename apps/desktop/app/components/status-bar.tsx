@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Wifi, WifiOff, User, Server, Cpu } from 'lucide-react';
+import { Wifi, WifiOff, User, Server, Cpu, ZoomIn } from 'lucide-react';
 import { getWorkspaceFromLocalStorage } from '@qwery/shared/workspace';
 
-export function StatusBar() {
+type StatusBarProps = {
+  zoom: number;
+};
+
+export function StatusBar({ zoom }: StatusBarProps) {
   const [connection, setConnection] = useState<'connected' | 'disconnected'>('connected');
   const [userLabel, setUserLabel] = useState<string>('Anonymous');
 
@@ -23,7 +27,7 @@ export function StatusBar() {
     let cancelled = false;
     const check = async () => {
       try {
-        const res = await fetch('/healthcheck');
+        const res = await fetch('/health');
         if (!cancelled) setConnection(res.ok ? 'connected' : 'disconnected');
       } catch {
         if (!cancelled) setConnection('disconnected');
@@ -38,6 +42,7 @@ export function StatusBar() {
   }, []);
 
   const env = typeof import.meta !== 'undefined' && import.meta.env?.DEV ? 'Development' : 'Production';
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <footer className="desktop-status-bar" role="status">
@@ -61,6 +66,10 @@ export function StatusBar() {
         <span className="desktop-status-bar__item" title="Server">
           <Server className="size-3" aria-hidden />
           <span>Local</span>
+        </span>
+        <span className="desktop-status-bar__item" title="Zoom level">
+          <ZoomIn className="size-3" aria-hidden />
+          <span>{zoomPercent}%</span>
         </span>
       </div>
     </footer>

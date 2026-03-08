@@ -32,6 +32,8 @@ type TitlebarProps = {
   onForward?: () => void;
   canGoBack?: boolean;
   canGoForward?: boolean;
+  canZoomIn?: boolean;
+  canZoomOut?: boolean;
 };
 
 export function Titlebar({
@@ -40,6 +42,8 @@ export function Titlebar({
   onForward,
   canGoBack = false,
   canGoForward = false,
+  canZoomIn = true,
+  canZoomOut = true,
 }: TitlebarProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isTauriEnv, setIsTauriEnv] = useState(false);
@@ -314,13 +318,15 @@ export function Titlebar({
             </Menubar.Trigger>
             <Menubar.Content className="bg-popover text-popover-foreground z-[1000] min-w-[10rem] overflow-hidden rounded-md border p-1 shadow-md">
               <Menubar.Item
-                className="focus:bg-accent focus:text-accent-foreground flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-xs outline-none"
+                className="flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-xs outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:opacity-40 data-[disabled]:text-muted-foreground"
+                disabled={!canZoomIn}
                 onClick={() => onMenuAction?.('view_zoom_in')}
               >
                 Zoom In
               </Menubar.Item>
               <Menubar.Item
-                className="focus:bg-accent focus:text-accent-foreground flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-xs outline-none"
+                className="flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-xs outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:opacity-40 data-[disabled]:text-muted-foreground"
+                disabled={!canZoomOut}
                 onClick={() => onMenuAction?.('view_zoom_out')}
               >
                 Zoom Out

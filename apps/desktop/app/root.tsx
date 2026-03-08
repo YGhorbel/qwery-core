@@ -51,7 +51,10 @@ export function HydrateFallback() {
     <html lang="en" className={className}>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
         <title>{appConfig.title}</title>
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -109,6 +112,7 @@ function AppContent({
   const location = useLocation();
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (!isDesktopApp()) return;
@@ -117,13 +121,6 @@ function AppContent({
     if (typeof window !== 'undefined') {
       document.documentElement.classList.add('desktop-runtime');
     }
-
-    import('@tauri-apps/plugin-os')
-      .then(({ platform }) => platform())
-      .then((p) => {
-        document.documentElement.classList.add(`platform-${p}`);
-      })
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -144,23 +141,122 @@ function AppContent({
     setCanGoForward(idx < length - 1);
   }, [location.key]);
 
-  const handleMenuAction = useCallback((action: MenuActionId) => {
-    switch (action) {
-      case 'file_new':
-      case 'file_open':
-      case 'file_save':
-      case 'file_save_as':
-      case 'edit_undo':
-      case 'edit_redo':
-      case 'view_zoom_in':
-      case 'view_zoom_out':
-      case 'view_actual_size':
-      case 'help_about':
-        break;
-      default:
-        break;
-    }
+  const handleMenuAction = useCallback(
+    (action: MenuActionId) => {
+      switch (action) {
+        case 'file_new':
+        case 'file_open':
+        case 'file_save':
+        case 'file_save_as':
+        case 'edit_undo':
+        case 'edit_redo':
+        case 'help_about':
+          break;
+        case 'view_zoom_in':
+          setZoom((value) => Math.min(1.5, value + 0.1));
+          break;
+        case 'view_zoom_out':
+          setZoom((value) => Math.max(0.5, value - 0.1));
+          break;
+        case 'view_actual_size':
+          setZoom(1);
+          break;
+        default:
+          break;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    if (typeof window === 'undefined' || !('visualViewport' in window)) return;
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const handleViewportResize = () => {
+      const scale = viewport.scale ?? 1;
+      if (scale !== 1) {
+        document.documentElement.classList.add('visual-zoomed');
+      } else {
+        document.documentElement.classList.remove('visual-zoomed');
+      }
+    };
+
+    viewport.addEventListener('resize', handleViewportResize);
+    handleViewportResize();
+
+    return () => {
+      viewport.removeEventListener('resize', handleViewportResize);
+      document.documentElement.classList.remove('visual-zoomed');
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+
+    const preventZoomWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) e.preventDefault();
+    };
+    const preventZoomKeys = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+
+      switch (e.key) {
+        case '=': // Ctrl/Cmd + '+'
+        case '+':
+          e.preventDefault();
+          handleMenuAction('view_zoom_in');
+          break;
+        case '-':
+          e.preventDefault();
+          handleMenuAction('view_zoom_out');
+          break;
+        case '0':
+          e.preventDefault();
+          handleMenuAction('view_actual_size');
+          break;
+        default:
+          break;
+      }
+    };
+    const preventGesture = (e: Event) => {
+      e.preventDefault();
+    };
+
+    let cancelled = false;
+
+    import('@tauri-apps/plugin-os')
+      .then(({ platform }) => platform())
+      .then((p) => {
+        if (cancelled) return;
+
+        document.documentElement.classList.add(`platform-${p}`);
+
+        // Common: block Ctrl/Cmd + wheel and remap keyboard zoom to our handler
+        document.addEventListener('wheel', preventZoomWheel, { passive: false });
+        window.addEventListener('wheel', preventZoomWheel, { passive: false });
+        document.addEventListener('keydown', preventZoomKeys);
+
+        // Full lock (where supported): block gesture events on macOS/Windows
+        if (p === 'macos' || p === 'windows') {
+          document.addEventListener('gesturestart', preventGesture);
+          document.addEventListener('gesturechange', preventGesture);
+          document.addEventListener('gestureend', preventGesture);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('wheel', preventZoomWheel);
+      window.removeEventListener('wheel', preventZoomWheel);
+      document.removeEventListener('keydown', preventZoomKeys);
+      document.removeEventListener('gesturestart', preventGesture);
+      document.removeEventListener('gesturechange', preventGesture);
+      document.removeEventListener('gestureend', preventGesture);
+    };
+  }, [handleMenuAction]);
 
   const handleBack = useCallback(() => {
     if (!canGoBack) return;
@@ -178,6 +274,9 @@ function AppContent({
   }, []);
   useKeyboardShortcuts({ onOpenCommandPalette });
 
+  const canZoomIn = zoom < 1.5;
+  const canZoomOut = zoom > 0.5;
+
   return (
     <>
       <div className="flex h-screen w-screen flex-col overflow-hidden">
@@ -187,15 +286,20 @@ function AppContent({
           onForward={handleForward}
           canGoBack={canGoBack}
           canGoForward={canGoForward}
+          canZoomIn={canZoomIn}
+          canZoomOut={canZoomOut}
         />
         <div className="desktop-content-area flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            style={{ zoom }}
+          >
             <RootProviders theme={theme as 'light' | 'dark' | 'system' | undefined} language={'en'}>
               <Outlet />
             </RootProviders>
           </div>
         </div>
-        <StatusBar />
+        <StatusBar zoom={zoom} />
       </div>
     </>
   );
@@ -210,7 +314,10 @@ export default function App({
     <html lang={'en'} className={cn(className, 'desktop-app')}>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
         <link
           rel="apple-touch-icon"
           sizes="144x144"
