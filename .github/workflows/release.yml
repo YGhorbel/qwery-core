@@ -34,24 +34,19 @@ jobs:
         with:
           version: 10.18.1
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate route types
-        run: pnpm --filter web exec react-router typegen
-
       - name: Build packages
         run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Build desktop app
         run: pnpm desktop:package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Upload release artifacts (macOS)
         if: matrix.os == 'macos-latest'
@@ -109,3 +104,4 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

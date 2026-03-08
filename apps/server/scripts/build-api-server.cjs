@@ -1,4 +1,5 @@
 const { spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const PLATFORM_TRIPLE = {
@@ -7,12 +8,21 @@ const PLATFORM_TRIPLE = {
   linux: process.arch === 'arm64' ? 'aarch64-unknown-linux-gnu' : 'x86_64-unknown-linux-gnu',
 };
 const triple = PLATFORM_TRIPLE[process.platform] || 'aarch64-apple-darwin';
-const outDir = path.resolve(__dirname, '../../desktop/src-tauri/binaries');
-const outfile = path.join(outDir, `api-server-${triple}`);
+const serverRoot = path.resolve(__dirname, '..');
+const distDir = path.join(serverRoot, 'dist');
+const desktopBinaries = path.resolve(serverRoot, '../../desktop/src-tauri/binaries');
+const name = `api-server-${triple}`;
+const outfile = path.join(distDir, name);
+
+fs.mkdirSync(distDir, { recursive: true });
 
 const result = spawnSync(
   'bun',
   ['build', './src/index.ts', '--target', 'node', '--outfile', outfile],
-  { stdio: 'inherit', cwd: path.resolve(__dirname, '..'), shell: true }
+  { stdio: 'inherit', cwd: serverRoot, shell: true }
 );
-process.exit(result.status ?? 1);
+if (result.status !== 0) process.exit(result.status ?? 1);
+
+fs.mkdirSync(desktopBinaries, { recursive: true });
+fs.copyFileSync(outfile, path.join(desktopBinaries, name));
+process.exit(0);
