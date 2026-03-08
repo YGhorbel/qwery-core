@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, data, useLocation, useNavigate } from "react-router";
-import type { Route } from '~/types/app/+types/root';
 
 import appConfig from '../../web/config/app.config';
 import styles from '../../web/styles/global.css?url';
@@ -305,9 +304,11 @@ function AppContent({
   );
 }
 
+type RootLoaderData = { className?: string; theme?: string };
+
 export default function App({
   loaderData,
-}: Route.ComponentProps) {
+}: { loaderData?: RootLoaderData }) {
   const { className, theme } = loaderData ?? {};
 
   return (

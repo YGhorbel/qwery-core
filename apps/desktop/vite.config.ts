@@ -148,12 +148,14 @@ export default defineConfig(async () => ({
       "@duckdb/duckdb-wasm",
       "fsevents",
     ],
-    // Only include packages that Vite consistently misses
     include: [
       "react-hook-form",
       "zod",
       "@radix-ui/react-context-menu",
       "recharts",
+      "@ai-sdk/react",
+      "@xyflow/react",
+      "@radix-ui/react-avatar",
     ],
   },
   build: {
