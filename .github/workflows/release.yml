@@ -53,6 +53,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: --max-old-space-size=4096
 
+      - name: List desktop build output (artifact locations)
+        shell: bash
+        run: |
+          echo "=== apps/desktop/src-tauri/target ==="
+          ls -laR apps/desktop/src-tauri/target 2>/dev/null || true
+          echo "=== apps/desktop/release (if any) ==="
+          ls -laR apps/desktop/release 2>/dev/null || true
+          echo "=== Find installers (AppImage, deb, dmg, exe, msi, zip) ==="
+          find apps/desktop -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.zip" \) 2>/dev/null || true
+
       - name: Upload release artifacts (macOS)
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
