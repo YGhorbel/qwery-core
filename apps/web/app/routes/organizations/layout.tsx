@@ -4,8 +4,6 @@ import { Page } from '@qwery/ui/page';
 import { SidebarProvider } from '@qwery/ui/shadcn-sidebar';
 import type { Route } from '~/types/app/routes/organizations/+types/layout';
 
-import { LayoutTopBar } from '../layout/_components/layout-topbar';
-
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   return {
     layoutState: {

@@ -818,7 +818,7 @@ export default function NotebookPage() {
       slug: normalizedNotebook.slug,
       projectId,
     });
-  }, [deleteNotebookMutation, normalizedNotebook, notebookProjectId]);
+  }, [deleteNotebookMutation, normalizedNotebook, notebookProjectId, t]);
 
   useEffect(() => {
     if (!normalizedNotebook?.updatedAt) {

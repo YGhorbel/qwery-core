@@ -54,25 +54,25 @@ function PageWithHeaderSidebar(props: PageProps) {
       </div>
 
       {/* Sidebar + Content */}
-    <div className="flex h-screen w-screen flex-col overflow-hidden overflow-x-hidden">
-      <div className="flex min-h-0 flex-1 overflow-hidden overflow-x-hidden">
-        {Navigation}
-        {/* Main Content - takes remaining width */}
-        <div className="bg-background relative flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden overflow-x-hidden">
-          <div className="h-full min-h-0 max-w-full min-w-0 flex-1 overflow-x-hidden">
-            {/* eslint-disable react-hooks/refs -- These are props being passed, not refs being accessed during render */}
-            <ResizableContent
-              ref={props.agentSidebarRef}
-              Content={Children}
-              AgentSidebar={AgentSidebar}
-              open={props.agentSidebarOpen}
-              onOpenChange={props.agentSidebarOnOpenChange}
-            />
-            {/* eslint-enable react-hooks/refs */}
+      <div className="flex h-screen w-screen flex-col overflow-hidden overflow-x-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden overflow-x-hidden">
+          {Navigation}
+          {/* Main Content - takes remaining width */}
+          <div className="bg-background relative flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden overflow-x-hidden">
+            <div className="h-full min-h-0 max-w-full min-w-0 flex-1 overflow-x-hidden">
+              {/* eslint-disable react-hooks/refs -- These are props being passed, not refs being accessed during render */}
+              <ResizableContent
+                ref={props.agentSidebarRef}
+                Content={Children}
+                AgentSidebar={AgentSidebar}
+                open={props.agentSidebarOpen}
+                onOpenChange={props.agentSidebarOnOpenChange}
+              />
+              {/* eslint-enable react-hooks/refs */}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

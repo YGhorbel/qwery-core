@@ -6,7 +6,6 @@ import type { Route } from '~/types/app/routes/+types/index';
 export const clientLoader = async (_args: Route.LoaderArgs) => {
   throw redirect(pathsConfig.app.organizations);
 };
-import { useNavigate } from 'react-router';
 import { Skeleton } from '@qwery/ui/skeleton';
 import { LoadingSkeleton } from '@qwery/ui/loading-skeleton';
 import {
@@ -24,10 +23,7 @@ import {
 import { ChevronRight } from 'lucide-react';
 import { LogoImage } from '~/components/app-logo';
 
-import { useWorkspace } from '~/lib/context/workspace-context';
-import { useGetProjectById } from '~/lib/queries/use-get-projects';
-
-function SidebarSkeleton() {
+function _SidebarSkeleton() {
   return (
     <Sidebar
       collapsible="none"
@@ -97,7 +93,7 @@ function SidebarSkeleton() {
   );
 }
 
-function DashboardSkeleton() {
+function _DashboardSkeleton() {
   return (
     <div className="bg-background flex h-full min-w-0 flex-1 justify-center overflow-y-auto">
       <main className="w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-20">
