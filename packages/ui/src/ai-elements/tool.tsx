@@ -79,7 +79,7 @@ export const Tool = ({
 };
 
 export type ToolHeaderProps = {
-  title?: string;
+  title?: ReactNode;
   type: ToolUIPart['type'];
   state: ToolUIPart['state'];
   executionTimeMs?: number;
@@ -209,7 +209,7 @@ export const ToolHeader = ({
   const isMinimal = variant === 'minimal';
   const statusConfig = getStatusConfig(state, isMinimal ? 'sm' : 'md');
   const toolIcon = getToolIcon(type, isMinimal ? 'sm' : 'md');
-  const toolName = title ?? getUserFriendlyToolName(type);
+  const toolName = title ?? (getUserFriendlyToolName(type) as ReactNode);
   const executionTimeLabel = formatExecutionTime(executionTimeMs);
 
   if (isMinimal) {

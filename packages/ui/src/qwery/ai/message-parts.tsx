@@ -94,10 +94,11 @@ import remarkGfm from 'remark-gfm';
 import { agentMarkdownComponents, HeadingContext } from './markdown-components';
 import { ToolErrorVisualizer } from './tool-error-visualizer';
 import type { useChat } from '@ai-sdk/react';
-import { getUserFriendlyToolName } from './utils/tool-name';
+import { getUserFriendlyToolName, getToolChartType } from './utils/tool-name';
 import { useToolVariant } from './tool-variant-context';
 
 import { ChartRenderer, type ChartConfig } from './charts/chart-renderer';
+import { Badge } from '../../shadcn/badge';
 import {
   ChartSkeleton,
   TableResultsSkeleton,
@@ -176,8 +177,8 @@ function TaskStepRow({
         className={cn(
           'flex items-start gap-3 rounded-lg py-2 transition-all duration-200',
           variant === 'default' &&
-          !isSubstep &&
-          'hover:bg-accent/30 -mx-2 px-2',
+            !isSubstep &&
+            'hover:bg-accent/30 -mx-2 px-2',
           isSubstep && 'pl-2',
         )}
       >
@@ -620,7 +621,7 @@ const TodoRow = memo(
             className={cn(
               'text-sm leading-tight transition-all duration-200',
               (isCompleted || isCancelled) &&
-              'text-muted-foreground line-through opacity-70',
+                'text-muted-foreground line-through opacity-70',
               isInProgress && 'text-foreground font-medium',
             )}
           >
@@ -838,7 +839,7 @@ export function getExecutionTimeMsFromMessageParts(
       typeof data.toolCallId === 'string' ? data.toolCallId : undefined;
     const executionTimeMs =
       typeof data.executionTimeMs === 'number' &&
-        Number.isFinite(data.executionTimeMs)
+      Number.isFinite(data.executionTimeMs)
         ? data.executionTimeMs
         : undefined;
 
@@ -873,18 +874,40 @@ export function ToolPart({
   );
   const [openQueries, setOpenQueries] = useState<Set<number>>(new Set());
 
-  let toolName: string;
-  if (
-    'toolName' in part &&
-    typeof part.toolName === 'string' &&
-    part.toolName
-  ) {
-    const rawName = part.toolName;
-    toolName = rawName.startsWith('tool-')
-      ? getUserFriendlyToolName(rawName, part)
-      : getUserFriendlyToolName(`tool-${rawName}`, part);
+  const isMinimal = variant === 'minimal';
+  const chartType = getToolChartType(part);
+
+  let toolName: React.ReactNode;
+  const baseType = (() => {
+    if (
+      'toolName' in part &&
+      typeof part.toolName === 'string' &&
+      part.toolName
+    ) {
+      const rawName = part.toolName;
+      return rawName.startsWith('tool-') ? rawName : `tool-${rawName}`;
+    }
+    return part.type;
+  })();
+
+  if (!isMinimal && chartType) {
+    const formattedChartType =
+      chartType.charAt(0).toUpperCase() + chartType.slice(1).toLowerCase();
+    toolName = (
+      <div className="flex items-center gap-2">
+        <span>{getUserFriendlyToolName(baseType)}</span>
+        <Badge
+          variant="secondary"
+          className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 h-4 px-1.5 py-0 text-[10px] font-bold tracking-wider uppercase"
+        >
+          {formattedChartType}
+        </Badge>
+      </div>
+    );
   } else {
-    toolName = getUserFriendlyToolName(part.type, part);
+    toolName = getUserFriendlyToolName(baseType, part, {
+      includeChartType: isMinimal,
+    });
   }
   // Render specialized visualizers based on tool type
   const renderToolOutput = () => {
@@ -1114,17 +1137,17 @@ export function ToolPart({
       const output =
         typeof rawOutput === 'object' && rawOutput !== null
           ? (rawOutput as {
-            result?: {
-              rows?: unknown[];
-              columns?: unknown[];
-              query?: string;
-            };
-            sqlQuery?: string;
-            shouldPaste?: boolean;
-            chartExecutionOverride?: boolean;
-            executed?: boolean;
-            exportFilename?: string;
-          })
+              result?: {
+                rows?: unknown[];
+                columns?: unknown[];
+                query?: string;
+              };
+              sqlQuery?: string;
+              shouldPaste?: boolean;
+              chartExecutionOverride?: boolean;
+              executed?: boolean;
+              exportFilename?: string;
+            })
           : null;
 
       // No output yet: show SQL streaming (cursor) or loading results
@@ -1202,56 +1225,56 @@ export function ToolPart({
 
       const executedFlag =
         output &&
-          'executed' in output &&
-          typeof (output as Record<string, unknown>).executed === 'boolean'
+        'executed' in output &&
+        typeof (output as Record<string, unknown>).executed === 'boolean'
           ? (output as Record<string, unknown>).executed
           : undefined;
 
       // Check if we should show paste button (inline mode with shouldPaste flag)
       const shouldShowPasteButton = Boolean(
         shouldPaste === true &&
-        sqlQuery &&
-        onPasteToNotebook &&
-        notebookContext?.cellId !== undefined &&
-        notebookContext?.notebookCellType &&
-        notebookContext?.datasourceId,
+          sqlQuery &&
+          onPasteToNotebook &&
+          notebookContext?.cellId !== undefined &&
+          notebookContext?.notebookCellType &&
+          notebookContext?.datasourceId,
       );
 
       // Create paste handler callback
       const handlePasteToNotebook =
         shouldShowPasteButton && onPasteToNotebook
           ? () => {
-            if (
-              sqlQuery &&
-              notebookContext?.cellId !== undefined &&
-              notebookContext?.notebookCellType &&
-              notebookContext?.datasourceId
-            ) {
-              onPasteToNotebook(
-                sqlQuery,
-                notebookContext.notebookCellType,
-                notebookContext.datasourceId,
-                notebookContext.cellId,
-              );
+              if (
+                sqlQuery &&
+                notebookContext?.cellId !== undefined &&
+                notebookContext?.notebookCellType &&
+                notebookContext?.datasourceId
+              ) {
+                onPasteToNotebook(
+                  sqlQuery,
+                  notebookContext.notebookCellType,
+                  notebookContext.datasourceId,
+                  notebookContext.cellId,
+                );
+              }
             }
-          }
           : undefined;
 
       const exportFilename =
         (output &&
-          'exportFilename' in output &&
-          typeof output.exportFilename === 'string'
+        'exportFilename' in output &&
+        typeof output.exportFilename === 'string'
           ? output.exportFilename
           : undefined) ??
         (messages
           ? generateExportFilename(
-            messages,
-            messageId,
-            sqlQuery,
-            hasResults && output?.result?.columns
-              ? (output.result.columns as string[])
-              : undefined,
-          )
+              messages,
+              messageId,
+              sqlQuery,
+              hasResults && output?.result?.columns
+                ? (output.result.columns as string[])
+                : undefined,
+            )
           : undefined);
 
       return (
@@ -1261,13 +1284,13 @@ export function ToolPart({
             result={
               hasResults && output?.result
                 ? {
-                  result: {
-                    columns: output.result.columns as string[],
-                    rows: output.result.rows as Array<
-                      Record<string, unknown>
-                    >,
-                  },
-                }
+                    result: {
+                      columns: output.result.columns as string[],
+                      rows: output.result.rows as Array<
+                        Record<string, unknown>
+                      >,
+                    },
+                  }
                 : undefined
             }
             onPasteToNotebook={handlePasteToNotebook}
@@ -1291,22 +1314,22 @@ export function ToolPart({
       } | null;
       const runQueriesOutput = part.output as
         | {
-          results?: Array<{
-            id?: string;
-            query: string;
-            summary?: string;
-            success: boolean;
-            data?: {
-              result?: {
-                columns?: unknown[];
-                rows?: unknown[];
+            results?: Array<{
+              id?: string;
+              query: string;
+              summary?: string;
+              success: boolean;
+              data?: {
+                result?: {
+                  columns?: unknown[];
+                  rows?: unknown[];
+                };
+                queryId?: string;
               };
-              queryId?: string;
-            };
-            error?: string;
-          }>;
-          meta?: { total: number; succeeded: number; failed: number };
-        }
+              error?: string;
+            }>;
+            meta?: { total: number; succeeded: number; failed: number };
+          }
         | null
         | undefined;
 
@@ -1559,9 +1582,9 @@ export function ToolPart({
                         : (queryText?.split('\n')[0] ?? '').trim();
                     const result =
                       'data' in q &&
-                        q.data &&
-                        typeof q.data === 'object' &&
-                        'result' in q.data
+                      q.data &&
+                      typeof q.data === 'object' &&
+                      'result' in q.data
                         ? (q.data as { result?: unknown }).result
                         : undefined;
                     const hasTableData =
@@ -1574,12 +1597,12 @@ export function ToolPart({
                     const tableResult =
                       hasTableData && result
                         ? {
-                          columns: (result as { columns: unknown[] })
-                            .columns as string[],
-                          rows: (result as { rows: unknown[] }).rows as Array<
-                            Record<string, unknown>
-                          >,
-                        }
+                            columns: (result as { columns: unknown[] })
+                              .columns as string[],
+                            rows: (result as { rows: unknown[] }).rows as Array<
+                              Record<string, unknown>
+                            >,
+                          }
                         : null;
                     const error =
                       'error' in q && q.error
@@ -1701,7 +1724,7 @@ export function ToolPart({
                       className={cn(
                         'text-muted-foreground border-border/40 bg-muted/20 flex -translate-y-0.5 items-center justify-center rounded-md border p-1.5 opacity-0 transition-all group-hover/summary:translate-y-0 group-hover/summary:opacity-100 hover:scale-105 active:scale-95',
                         runQueriesAllOpen === false &&
-                        'bg-primary/10 border-primary/40 text-primary shadow-sm',
+                          'bg-primary/10 border-primary/40 text-primary shadow-sm',
                       )}
                       title={
                         runQueriesAllOpen === true
@@ -1774,12 +1797,12 @@ export function ToolPart({
                   const tableResult =
                     hasTableData && result
                       ? {
-                        columns: (result as { columns: unknown[] })
-                          .columns as string[],
-                        rows: (result as { rows: unknown[] }).rows as Array<
-                          Record<string, unknown>
-                        >,
-                      }
+                          columns: (result as { columns: unknown[] })
+                            .columns as string[],
+                          rows: (result as { rows: unknown[] }).rows as Array<
+                            Record<string, unknown>
+                          >,
+                        }
                       : null;
                   const hasTable = !!tableResult;
                   const rowCount = tableResult?.rows.length ?? 0;
@@ -1813,9 +1836,9 @@ export function ToolPart({
                       className={cn(
                         'border-border/40 bg-card/30 w-full overflow-hidden rounded-xl border transition-all duration-200',
                         isExecuting &&
-                        'ring-primary/30 border-primary/40 bg-primary/[0.02] shadow-primary/5 shadow-lg ring-2',
+                          'ring-primary/30 border-primary/40 bg-primary/[0.02] shadow-primary/5 shadow-lg ring-2',
                         success === false &&
-                        'border-destructive/30 bg-destructive/[0.02]',
+                          'border-destructive/30 bg-destructive/[0.02]',
                       )}
                     >
                       <CollapsibleTrigger className="group/item hover:bg-muted/40 flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
@@ -1938,8 +1961,8 @@ export function ToolPart({
                                   result={
                                     tableResult
                                       ? {
-                                        result: tableResult,
-                                      }
+                                          result: tableResult,
+                                        }
                                       : undefined
                                   }
                                   onPasteToNotebook={undefined}
@@ -2258,9 +2281,9 @@ export function ToolPart({
       {...(isControlled
         ? { open, onOpenChange }
         : {
-          defaultOpen:
-            defaultOpenWhenUncontrolled ?? TOOL_UI_CONFIG.DEFAULT_OPEN,
-        })}
+            defaultOpen:
+              defaultOpenWhenUncontrolled ?? TOOL_UI_CONFIG.DEFAULT_OPEN,
+          })}
       variant={variant}
       className={cn(
         'animate-in fade-in slide-in-from-bottom-2 duration-300 ease-in-out',

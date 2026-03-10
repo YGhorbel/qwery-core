@@ -1,4 +1,29 @@
-export function getUserFriendlyToolName(type: string, context?: any): string {
+import type { ChartType } from '../types/chart.types';
+
+type Chartish = {
+  chartType?: ChartType | string | null;
+};
+
+export type ToolNameContext = {
+  output?: any;
+  input?: any;
+};
+
+export interface ToolNameOptions {
+  includeChartType?: boolean;
+}
+
+export function getToolChartType(context?: ToolNameContext): string | null {
+  if (!context) return null;
+  const chartType = context.output?.chartType || context.input?.chartType;
+  return typeof chartType === 'string' ? chartType : null;
+}
+
+export function getUserFriendlyToolName(
+  type: string,
+  context?: ToolNameContext,
+  options: ToolNameOptions = { includeChartType: true },
+): string {
   if (!type || typeof type !== 'string' || !type.trim()) {
     return 'Tool';
   }
@@ -26,14 +51,17 @@ export function getUserFriendlyToolName(type: string, context?: any): string {
   const baseType = normalizedType.replace(/^tool-/, '');
   if (
     context &&
+    options.includeChartType &&
     (baseType === 'generateChart' || baseType === 'selectChartType')
   ) {
-    const chartType = context.output?.chartType || context.input?.chartType;
+    const chartType = getToolChartType(context);
     if (chartType) {
       const formattedChartType =
         chartType.charAt(0).toUpperCase() + chartType.slice(1).toLowerCase();
       // If we don't have a mapped name yet, use a default one
-      const baseLabel = mappedName || (baseType === 'generateChart' ? 'Generate Chart' : 'Select Chart Type');
+      const baseLabel =
+        mappedName ||
+        (baseType === 'generateChart' ? 'Generate Chart' : 'Select Chart Type');
       mappedName = `${baseLabel} (${formattedChartType})`;
     }
   }

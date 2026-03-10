@@ -1967,9 +1967,6 @@ function PromptInputInner({
       return;
     }
 
-    controller.textInput.clear();
-    setState((prev) => ({ ...prev, input: '' }));
-
     try {
       const ds = getDatasourcesForSend?.() ?? selectedDatasources ?? [];
       const bodyDatasources = ds.length > 0 ? ds : undefined;

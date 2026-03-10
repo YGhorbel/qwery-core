@@ -43,15 +43,19 @@ function formatToolPart(
   ) {
     const rawName = part.toolName.trim();
     const formatted = rawName.startsWith('tool-')
-      ? getUserFriendlyToolName(rawName, part)
-      : getUserFriendlyToolName(`tool-${rawName}`, part);
+      ? getUserFriendlyToolName(rawName, part, { includeChartType: true })
+      : getUserFriendlyToolName(`tool-${rawName}`, part, {
+          includeChartType: true,
+        });
     if (formatted && formatted.trim()) {
       toolName = formatted;
     }
   }
 
   if (toolName === 'Tool' && part.type && typeof part.type === 'string') {
-    const formatted = getUserFriendlyToolName(part.type, part);
+    const formatted = getUserFriendlyToolName(part.type, part, {
+      includeChartType: true,
+    });
     if (formatted && formatted.trim()) {
       toolName = formatted;
     } else {
