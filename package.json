@@ -54,7 +54,7 @@
     "desktop:dev": "pnpm --filter ./apps/desktop dev",
     "desktop:tauri": "pnpm --filter ./apps/desktop tauri",
     "desktop:build": "pnpm --filter ./apps/desktop build",
-    "desktop:package": "TAURI_CI=true pnpm --filter ./apps/desktop run tauri:build",
+    "desktop:package": "pnpm --filter ./apps/desktop run tauri:build",
     "desktop:start": "pnpm --filter desktop start",
     "extensions:build": "node tooling/extensions/build.js",
     "update": "pnpm update -r",
