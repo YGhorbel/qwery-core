@@ -28,7 +28,8 @@ export interface NoDatasourceDialogRef {
 const ENABLED_MODELS_STORAGE_KEY = 'qwery-enabled-model-ids';
 
 function loadEnabledModelIds(allModels: { value: string }[]): Set<string> {
-  if (typeof window === 'undefined') return new Set(allModels.map((m) => m.value));
+  if (typeof window === 'undefined')
+    return new Set(allModels.map((m) => m.value));
   try {
     const raw = localStorage.getItem(ENABLED_MODELS_STORAGE_KEY);
     if (!raw) return new Set(allModels.map((m) => m.value));

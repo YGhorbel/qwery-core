@@ -99,6 +99,8 @@ export function useSuggestionDetection({
         });
       }
 
+      const key = contentKey;
+      void key;
       return nextDetected;
     } catch (error) {
       console.error(

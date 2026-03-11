@@ -241,10 +241,7 @@ function PromptInputContent(props: QweryPromptInputProps) {
                 className="flex cursor-default items-center justify-between gap-3 py-2"
               >
                 <span className="text-sm">Web search</span>
-                <Switch
-                  checked={webSearch}
-                  onCheckedChange={setWebSearch}
-                />
+                <Switch checked={webSearch} onCheckedChange={setWebSearch} />
               </DropdownMenuItem>
               {webSearch && (
                 <SubMenuSearchEngineSelect
@@ -289,13 +286,13 @@ function PromptInputContent(props: QweryPromptInputProps) {
           <QweryContext
             usedTokens={
               typeof props.usage?.usedTokens === 'number' &&
-                !isNaN(props.usage.usedTokens)
+              !isNaN(props.usage.usedTokens)
                 ? props.usage.usedTokens
                 : 0
             }
             maxTokens={
               typeof props.usage?.maxTokens === 'number' &&
-                !isNaN(props.usage.maxTokens)
+              !isNaN(props.usage.maxTokens)
                 ? props.usage.maxTokens
                 : 0
             }

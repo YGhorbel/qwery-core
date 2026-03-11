@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ChevronsUpDown,
   ChevronLeft,
@@ -68,15 +68,6 @@ export function ModelSelector({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const prevOpenRef = useRef(false);
-
-  useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      setSearch('');
-      setCurrentPage(1);
-    }
-    prevOpenRef.current = open;
-  }, [open]);
 
   const filteredModels = useMemo(() => {
     if (!search.trim()) return models;
@@ -88,13 +79,11 @@ export function ModelSelector({
   }, [models, search]);
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const safeCurrentPage =
+    totalPages === 0 ? 1 : Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const visibleItems = filteredModels.slice(startIndex, endIndex);
-
-  useEffect(() => {
-    if (open || search) setCurrentPage(1);
-  }, [open, search]);
 
   const handleSelect = (modelValue: string) => {
     onValueChange(modelValue);
@@ -112,7 +101,7 @@ export function ModelSelector({
     [models, value],
   );
   const triggerLabel = selectedModel
-    ? selectedModel.shortName ?? selectedModel.name
+    ? (selectedModel.shortName ?? selectedModel.name)
     : null;
 
   return (
@@ -126,9 +115,7 @@ export function ModelSelector({
           <span
             className={cn(
               'min-w-0 truncate',
-              triggerLabel
-                ? 'text-foreground/80'
-                : 'text-muted-foreground',
+              triggerLabel ? 'text-foreground/80' : 'text-muted-foreground',
             )}
           >
             {triggerLabel ?? 'Select model'}

@@ -80,7 +80,7 @@ export function ModelsManagerSheet({
   onModelsChange,
 }: ModelsManagerSheetProps) {
   const [search, setSearch] = useState('');
-   const [groupByFamily, setGroupByFamily] = useState(true);
+  const [groupByFamily, setGroupByFamily] = useState(true);
 
   const filteredModels = useMemo(() => {
     if (!search.trim()) return allModels;
@@ -107,24 +107,24 @@ export function ModelsManagerSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="border-border/50 flex w-full flex-col sm:max-w-md border-l"
+        className="border-border/50 flex w-full flex-col border-l sm:max-w-md"
       >
         <SheetHeader className="border-border/50">
           <SheetTitle>
-          <p className="text-lg">Models</p>
+            <p className="text-lg">Models</p>
           </SheetTitle>
           <p className="text-muted-foreground text-xs">
             Enable the models you want available in this workspace.
           </p>
         </SheetHeader>
         <div className="flex flex-1 flex-col gap-4 overflow-hidden pt-4">
-          <div className="border-border/50 flex items-center rounded-lg border bg-transparent px-3 py-2 focus-within:border-border">
+          <div className="border-border/50 focus-within:border-border flex items-center rounded-lg border bg-transparent px-3 py-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Add or search model"
-              className="bg-transparent flex-1 text-sm outline-none placeholder:text-muted-foreground/60"
+              className="placeholder:text-muted-foreground/60 flex-1 bg-transparent text-sm outline-none"
             />
             <div className="flex items-center gap-0.5 pl-1">
               <button
@@ -160,48 +160,22 @@ export function ModelsManagerSheet({
               </div>
             ) : (
               <div className="space-y-4">
-                {groupByFamily
-                  ? groupedModels.map((group) => (
-                      <div key={group.id} className="px-2 py-1.5">
-                        <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-                          {group.label}
-                        </p>
-                        <div className="space-y-0.5">
-                          {group.models.map((model) => {
-                            const enabled = enabledModelIds.has(model.value);
-                            const displayName =
-                              groupByFamily
-                                ? (model.shortName ?? model.name)
-                                : model.name;
-                            return (
-                              <div
-                                key={model.value}
-                                className="focus-within:bg-accent flex cursor-default items-center justify-between gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50"
-                              >
-                                <span className="min-w-0 flex-1">
-                                  {highlightSearchMatch(displayName, search)}
-                                </span>
-                                <Switch
-                                  checked={enabled}
-                                  onCheckedChange={(checked) =>
-                                    toggleModel(model.value, checked)
-                                  }
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  : (
-                      <div className="space-y-0.5 px-2 py-1.5">
-                        {filteredModels.map((model) => {
+                {groupByFamily ? (
+                  groupedModels.map((group) => (
+                    <div key={group.id} className="px-2 py-1.5">
+                      <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+                        {group.label}
+                      </p>
+                      <div className="space-y-0.5">
+                        {group.models.map((model) => {
                           const enabled = enabledModelIds.has(model.value);
-                          const displayName = model.name;
+                          const displayName = groupByFamily
+                            ? (model.shortName ?? model.name)
+                            : model.name;
                           return (
                             <div
                               key={model.value}
-                              className="focus-within:bg-accent flex cursor-default items-center justify-between gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50"
+                              className="focus-within:bg-accent hover:bg-accent/50 flex cursor-default items-center justify-between gap-2.5 rounded-md px-3 py-2 text-sm transition-colors"
                             >
                               <span className="min-w-0 flex-1">
                                 {highlightSearchMatch(displayName, search)}
@@ -216,7 +190,32 @@ export function ModelsManagerSheet({
                           );
                         })}
                       </div>
-                    )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="space-y-0.5 px-2 py-1.5">
+                    {filteredModels.map((model) => {
+                      const enabled = enabledModelIds.has(model.value);
+                      const displayName = model.name;
+                      return (
+                        <div
+                          key={model.value}
+                          className="focus-within:bg-accent hover:bg-accent/50 flex cursor-default items-center justify-between gap-2.5 rounded-md px-3 py-2 text-sm transition-colors"
+                        >
+                          <span className="min-w-0 flex-1">
+                            {highlightSearchMatch(displayName, search)}
+                          </span>
+                          <Switch
+                            checked={enabled}
+                            onCheckedChange={(checked) =>
+                              toggleModel(model.value, checked)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -409,7 +409,7 @@ export function UserMessageBubble({
   pluginLogoMap,
   onEditStart: _onEditStart,
   isLastUserMessage = false,
-  timestamp,
+  timestamp: _timestamp,
 }: UserMessageBubbleProps) {
   const hasContext = context && context.lastAssistantResponse;
   const hasSourceSuggestion = context?.sourceSuggestionId;
@@ -531,10 +531,8 @@ export function UserMessageBubble({
         {previewData && (
           <HoverCard open={isHoverCardOpen} onOpenChange={setIsHoverCardOpen}>
             <HoverCardTrigger asChild>
-              <div className="text-muted-foreground hover:text-foreground flex min-w-0 max-w-[65%] shrink-0 cursor-pointer items-center justify-end text-right text-xs leading-relaxed transition-colors">
-                <span className="break-words">
-                  {previewData.preview}
-                </span>
+              <div className="text-muted-foreground hover:text-foreground flex max-w-[65%] min-w-0 shrink-0 cursor-pointer items-center justify-end text-right text-xs leading-relaxed transition-colors">
+                <span className="break-words">{previewData.preview}</span>
               </div>
             </HoverCardTrigger>
             <HoverCardContent

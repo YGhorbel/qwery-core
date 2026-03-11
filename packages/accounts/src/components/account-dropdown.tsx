@@ -90,7 +90,9 @@ export function AccountDropdown({
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent className={'xl:!min-w-[15rem]'}>
-        <DropdownMenuItem className={'!h-10 flex items-start gap-2 rounded-none'}>
+        <DropdownMenuItem
+          className={'flex !h-10 items-start gap-2 rounded-none'}
+        >
           <User className={'text-muted-foreground mt-0.5 h-5 shrink-0'} />
           <div
             className={'flex flex-col justify-start truncate text-left text-xs'}

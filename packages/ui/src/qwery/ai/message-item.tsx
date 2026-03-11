@@ -19,11 +19,7 @@ import {
   Archive as ArchiveIcon,
 } from 'lucide-react';
 import { Message, MessageContent } from '../../ai-elements/message';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../shadcn/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../shadcn/tooltip';
 import { normalizeUIRole } from '@qwery/shared/message-role-utils';
 import {
   Source,
@@ -584,28 +580,54 @@ function MessageItemComponent({
                                               isLastUserMessage
                                             }
                                             timestamp={
-                                              (message.metadata as Record<string, unknown> | undefined)?.createdAt as
+                                              (
+                                                message.metadata as
+                                                  | Record<string, unknown>
+                                                  | undefined
+                                              )?.createdAt as
                                                 | Date
                                                 | string
                                                 | undefined
                                             }
                                           />
                                           {isLastTextPart && (
-                                              <div className="mt-1 flex items-center justify-end gap-1">
-                                                {(message.metadata as Record<string, unknown> | undefined)?.createdAt != null && (
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                        {formatMessageTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                      {formatMessageDateTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                )}
-                                                {!isChatActive(status) && (
-                                                  <Button
+                                            <div className="mt-1 flex items-center justify-end gap-1">
+                                              {(
+                                                message.metadata as
+                                                  | Record<string, unknown>
+                                                  | undefined
+                                              )?.createdAt != null && (
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
+                                                      {formatMessageTime(
+                                                        (
+                                                          message.metadata as Record<
+                                                            string,
+                                                            unknown
+                                                          >
+                                                        ).createdAt as
+                                                          | Date
+                                                          | string,
+                                                      )}
+                                                    </span>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent side="top">
+                                                    {formatMessageDateTime(
+                                                      (
+                                                        message.metadata as Record<
+                                                          string,
+                                                          unknown
+                                                        >
+                                                      ).createdAt as
+                                                        | Date
+                                                        | string,
+                                                    )}
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              )}
+                                              {!isChatActive(status) && (
+                                                <Button
                                                   variant="ghost"
                                                   size="icon"
                                                   onClick={() =>
@@ -698,16 +720,38 @@ function MessageItemComponent({
                                           {normalizeUIRole(message.role) ===
                                             'user' &&
                                             isLastTextPart && (
-                                              <div className="mr-2 mt-1 flex items-center justify-end gap-1">
-                                                {(message.metadata as Record<string, unknown> | undefined)?.createdAt != null && (
+                                              <div className="mt-1 mr-2 flex items-center justify-end gap-1">
+                                                {(
+                                                  message.metadata as
+                                                    | Record<string, unknown>
+                                                    | undefined
+                                                )?.createdAt != null && (
                                                   <Tooltip>
                                                     <TooltipTrigger asChild>
                                                       <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                        {formatMessageTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
+                                                        {formatMessageTime(
+                                                          (
+                                                            message.metadata as Record<
+                                                              string,
+                                                              unknown
+                                                            >
+                                                          ).createdAt as
+                                                            | Date
+                                                            | string,
+                                                        )}
                                                       </span>
                                                     </TooltipTrigger>
                                                     <TooltipContent side="top">
-                                                      {formatMessageDateTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
+                                                      {formatMessageDateTime(
+                                                        (
+                                                          message.metadata as Record<
+                                                            string,
+                                                            unknown
+                                                          >
+                                                        ).createdAt as
+                                                          | Date
+                                                          | string,
+                                                      )}
                                                     </TooltipContent>
                                                   </Tooltip>
                                                 )}

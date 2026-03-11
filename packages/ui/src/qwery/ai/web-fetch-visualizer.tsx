@@ -41,7 +41,7 @@ export function SearchEngineIcon({
   return (
     <span
       className={cn(
-        'flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-muted',
+        'bg-muted flex h-4 w-4 shrink-0 items-center justify-center rounded-sm',
         className,
       )}
       aria-hidden
@@ -56,176 +56,185 @@ export function SearchEngineIcon({
 }
 
 export const SEARCH_ENGINE_IDS: readonly SearchEngine[] = [
-    'google',
-    'bing',
-    'duckduckgo',
-    'baidu',
-    'yandex',
-    'yahoo',
+  'google',
+  'bing',
+  'duckduckgo',
+  'baidu',
+  'yandex',
+  'yahoo',
 ] as const;
 
 export function isSearchEngine(s: string): s is SearchEngine {
-    return (SEARCH_ENGINE_IDS as readonly string[]).includes(s);
+  return (SEARCH_ENGINE_IDS as readonly string[]).includes(s);
 }
 
 export interface WebFetchVisualizerProps {
-    /** The full URL of the web page */
-    url: string;
-    /** The format of the content (if available) */
-    format?: 'text' | 'markdown' | 'html';
-    /** Optional output string (not used in current minimal/metadata-only design) */
-    output?: string;
-    /** Additional CSS classes */
-    className?: string;
-    /** Whether the tool is currently streaming/loading */
-    isStreaming?: boolean;
-    /** UI variant (default or minimal) */
-    variant?: ToolVariant;
+  /** The full URL of the web page */
+  url: string;
+  /** The format of the content (if available) */
+  format?: 'text' | 'markdown' | 'html';
+  /** Optional output string (not used in current minimal/metadata-only design) */
+  output?: string;
+  /** Additional CSS classes */
+  className?: string;
+  /** Whether the tool is currently streaming/loading */
+  isStreaming?: boolean;
+  /** UI variant (default or minimal) */
+  variant?: ToolVariant;
 }
 
 /**
  * Utility to extract search engine and query from a URL (exported for minimal tool row)
  */
 export function getUrlMetadata(url: string) {
-    try {
-        const parsed = new URL(url);
-        const host = parsed.hostname.toLowerCase().replace('www.', '');
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace('www.', '');
 
-        let engine: SearchEngine | undefined;
-        if (host.includes('google')) engine = 'google';
-        else if (host.includes('duckduckgo')) engine = 'duckduckgo';
-        else if (host.includes('bing')) engine = 'bing';
-        else if (host.includes('baidu')) engine = 'baidu';
-        else if (host.includes('yandex')) engine = 'yandex';
-        else if (host.includes('yahoo')) engine = 'yahoo';
+    let engine: SearchEngine | undefined;
+    if (host.includes('google')) engine = 'google';
+    else if (host.includes('duckduckgo')) engine = 'duckduckgo';
+    else if (host.includes('bing')) engine = 'bing';
+    else if (host.includes('baidu')) engine = 'baidu';
+    else if (host.includes('yandex')) engine = 'yandex';
+    else if (host.includes('yahoo')) engine = 'yahoo';
 
-        const params = parsed.searchParams;
-        // Common query parameters across engines
-        const query = params.get('q') ||
-            params.get('query') ||
-            params.get('p') ||
-            params.get('s') ||
-            params.get('text') ||
-            params.get('wd');
+    const params = parsed.searchParams;
+    // Common query parameters across engines
+    const query =
+      params.get('q') ||
+      params.get('query') ||
+      params.get('p') ||
+      params.get('s') ||
+      params.get('text') ||
+      params.get('wd');
 
-        return {
-            host: host.split('.')[0] || host,
-            domain: host,
-            engine,
-            searchQuery: query ? decodeURIComponent(query).replace(/\+/g, ' ') : null,
-            isValid: true
-        };
-    } catch {
-        return { host: 'Web Page', domain: '', engine: undefined, searchQuery: null, isValid: false };
-    }
-};
+    return {
+      host: host.split('.')[0] || host,
+      domain: host,
+      engine,
+      searchQuery: query ? decodeURIComponent(query).replace(/\+/g, ' ') : null,
+      isValid: true,
+    };
+  } catch {
+    return {
+      host: 'Web Page',
+      domain: '',
+      engine: undefined,
+      searchQuery: null,
+      isValid: false,
+    };
+  }
+}
 
 export const WebFetchVisualizer = React.memo(function WebFetchVisualizer({
-    url,
-    className,
-    isStreaming = false,
-    variant = 'default',
+  url,
+  className,
+  isStreaming = false,
+  variant = 'default',
 }: WebFetchVisualizerProps) {
-    const isMinimal = variant === 'minimal';
+  const isMinimal = variant === 'minimal';
 
-    const metadata = React.useMemo(() => getUrlMetadata(url), [url]);
+  const metadata = React.useMemo(() => getUrlMetadata(url), [url]);
 
-    const faviconUrl = metadata.domain
-        ? `https://www.google.com/s2/favicons?domain=${metadata.domain}&sz=64`
-        : null;
+  const faviconUrl = metadata.domain
+    ? `https://www.google.com/s2/favicons?domain=${metadata.domain}&sz=64`
+    : null;
 
-    // Final label to display (Search String > Hostname)
-    const displayLabel = metadata.searchQuery || metadata.host;
+  // Final label to display (Search String > Hostname)
+  const displayLabel = metadata.searchQuery || metadata.host;
 
-    if (isMinimal) {
-        return (
-            <div className={cn('flex items-center gap-2 py-0.5', className)}>
-                <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group flex max-w-full items-center gap-2.5 transition-all hover:opacity-100 opacity-80 min-w-0"
-                >
-                    <div className="flex items-center gap-2 min-w-0">
-                        {metadata.engine ? (
-                            <SearchEngineIcon
-                                engine={metadata.engine}
-                                className="size-3.5 shrink-0"
-                            />
-                        ) : null}
-                        {faviconUrl ? (
-                            <img
-                                src={faviconUrl}
-                                alt=""
-                                className="h-4 w-4 rounded-sm shrink-0 grayscale group-hover:grayscale-0 transition-all opacity-70 group-hover:opacity-100"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                            />
-                        ) : (
-                            <Globe className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-                        )}
-                        <span className="text-foreground/90 group-hover:text-primary truncate text-[13px] font-bold tracking-tight transition-colors">
-                            {displayLabel}
-                        </span>
-                    </div>
-                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
-                </a>
-            </div>
-        );
-    }
-
+  if (isMinimal) {
     return (
-        <div className={cn('flex w-full flex-col', className)}>
-            <div className="group relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-colors hover:border-border">
-                <div className="flex flex-col gap-4 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex min-w-0 flex-1 items-center gap-4">
-                            <div className="bg-muted/50 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/50">
-                                {faviconUrl ? (
-                                    <img
-                                        src={faviconUrl}
-                                        alt=""
-                                        className="h-6 w-6 rounded object-contain"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                    />
-                                ) : (
-                                    <Globe className="h-5 w-5" />
-                                )}
-                            </div>
-
-                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                                <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-                                    {displayLabel}
-                                </span>
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                    <div
-                                        className={cn(
-                                            'h-1.5 w-1.5 rounded-full',
-                                            isStreaming ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500',
-                                        )}
-                                    />
-                                    <span className="truncate text-[10px] font-medium uppercase tracking-wider">
-                                        {metadata.engine || metadata.domain || 'Web'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <a
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-muted-foreground hover:text-foreground hover:bg-muted/70 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
-                            aria-label="Open in new tab"
-                        >
-                            <ExternalLink className="h-4 w-4" />
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className={cn('flex items-center gap-2 py-0.5', className)}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="group flex max-w-full min-w-0 items-center gap-2.5 opacity-80 transition-all hover:opacity-100"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            {metadata.engine ? (
+              <SearchEngineIcon
+                engine={metadata.engine}
+                className="size-3.5 shrink-0"
+              />
+            ) : null}
+            {faviconUrl ? (
+              <img
+                src={faviconUrl}
+                alt=""
+                className="h-4 w-4 shrink-0 rounded-sm opacity-70 grayscale transition-all group-hover:opacity-100 group-hover:grayscale-0"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <Globe className="text-muted-foreground/60 h-4 w-4 shrink-0" />
+            )}
+            <span className="text-foreground/90 group-hover:text-primary truncate text-[13px] font-bold tracking-tight transition-colors">
+              {displayLabel}
+            </span>
+          </div>
+          <ExternalLink className="text-muted-foreground group-hover:text-primary h-3 w-3 shrink-0 transition-colors" />
+        </a>
+      </div>
     );
+  }
+
+  return (
+    <div className={cn('flex w-full flex-col', className)}>
+      <div className="group border-border/60 bg-card hover:border-border relative overflow-hidden rounded-xl border shadow-sm transition-colors">
+        <div className="flex flex-col gap-4 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
+              <div className="bg-muted/50 text-primary border-border/50 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border">
+                {faviconUrl ? (
+                  <img
+                    src={faviconUrl}
+                    alt=""
+                    className="h-6 w-6 rounded object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <Globe className="h-5 w-5" />
+                )}
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+                  {displayLabel}
+                </span>
+                <div className="text-muted-foreground flex items-center gap-1.5">
+                  <div
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full',
+                      isStreaming
+                        ? 'animate-pulse bg-amber-500'
+                        : 'bg-emerald-500',
+                    )}
+                  />
+                  <span className="truncate text-[10px] font-medium tracking-wider uppercase">
+                    {metadata.engine || metadata.domain || 'Web'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/70 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
+              aria-label="Open in new tab"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 });

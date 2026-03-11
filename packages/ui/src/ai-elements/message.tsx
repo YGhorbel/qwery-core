@@ -29,7 +29,7 @@ export const Message = ({ className, from, ...props }: MessageProps) => (
     className={cn(
       'group flex min-w-0 flex-col gap-2 overflow-x-hidden',
       from === 'user'
-        ? 'is-user w-auto max-w-[80%] ml-auto justify-end'
+        ? 'is-user ml-auto w-auto max-w-[80%] justify-end'
         : 'is-assistant w-full max-w-[80%]',
       className,
     )}

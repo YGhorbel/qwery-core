@@ -24,11 +24,7 @@ import {
   UserMessageBubble,
   parseMessageWithContext,
 } from './ai/user-message-bubble';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../shadcn/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/tooltip';
 import {
   type PromptInputMessage,
   usePromptInputAttachments,
@@ -292,11 +288,10 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
   });
 
   const modelIds = useMemo(() => new Set(models.map((m) => m.value)), [models]);
-  useEffect(() => {
-    if (!modelIds.has(state.model) && models.length > 0) {
-      setState((prev) => ({ ...prev, model: models[0]!.value }));
-    }
-  }, [modelIds, state.model, models]);
+  const effectiveModel = useMemo(() => {
+    if (models.length === 0) return state.model;
+    return modelIds.has(state.model) ? state.model : models[0]!.value;
+  }, [modelIds, models, state.model]);
 
   const [showSuggestionBadges, setShowSuggestionBadges] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -353,8 +348,8 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
   }, [state.webSearch]);
 
   const transportInstance = useMemo(
-    () => transport(state.model),
-    [transport, state.model],
+    () => transport(effectiveModel),
+    [transport, effectiveModel],
   );
 
   const {
@@ -420,10 +415,10 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
         wrappedSendMessage as typeof sendMessage & {
           setMessages: typeof setMessages;
         },
-        state.model,
+        effectiveModel,
       );
     }
-  }, [sendMessage, setMessages, state.model, onSendMessageReady]);
+  }, [sendMessage, setMessages, effectiveModel, onSendMessageReady]);
 
   const { setIsProcessing } = useAgentStatus();
 
@@ -1141,7 +1136,9 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                   <ConversationEmptyState
                     title="Start a conversation"
                     description="Ask me anything and I'll help you out. You can ask questions or get explanations."
-                    icon={<Sparkles className="text-muted-foreground size-12" />}
+                    icon={
+                      <Sparkles className="text-muted-foreground size-12" />
+                    }
                   />
                   <div className="mx-auto w-full max-w-4xl shrink-0 self-center px-6">
                     <PromptInputInner
@@ -1301,7 +1298,9 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                         usage={usage}
                         datasources={datasources}
                         selectedDatasources={selectedDatasources}
-                        onDatasourceSelectionChange={onDatasourceSelectionChange}
+                        onDatasourceSelectionChange={
+                          onDatasourceSelectionChange
+                        }
                         getDatasourcesForSend={getDatasourcesForSend}
                         pluginLogoMap={pluginLogoMap}
                         datasourcesLoading={datasourcesLoading}
@@ -1633,7 +1632,14 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                               );
 
                                             if (context) {
-                                              const createdAt = (message.metadata as Record<string, unknown> | undefined)?.createdAt as Date | string | undefined;
+                                              const createdAt = (
+                                                message.metadata as
+                                                  | Record<string, unknown>
+                                                  | undefined
+                                              )?.createdAt as
+                                                | Date
+                                                | string
+                                                | undefined;
                                               return (
                                                 <div className="group/msg w-full max-w-full min-w-0">
                                                   <UserMessageBubble
@@ -1654,20 +1660,27 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                                     }
                                                     timestamp={createdAt}
                                                   />
-                                                  {createdAt != null && isLastTextPart && (
-                                                    <div className="mt-1 flex justify-end opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <span className="text-muted-foreground cursor-default text-xs">
-                                                            {formatMessageTime(createdAt)}
-                                                          </span>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="top">
-                                                          {formatMessageDateTime(createdAt)}
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    </div>
-                                                  )}
+                                                  {createdAt != null &&
+                                                    isLastTextPart && (
+                                                      <div className="mt-1 flex justify-end opacity-0 transition-opacity group-hover/msg:opacity-100">
+                                                        <Tooltip>
+                                                          <TooltipTrigger
+                                                            asChild
+                                                          >
+                                                            <span className="text-muted-foreground cursor-default text-xs">
+                                                              {formatMessageTime(
+                                                                createdAt,
+                                                              )}
+                                                            </span>
+                                                          </TooltipTrigger>
+                                                          <TooltipContent side="top">
+                                                            {formatMessageDateTime(
+                                                              createdAt,
+                                                            )}
+                                                          </TooltipContent>
+                                                        </Tooltip>
+                                                      </div>
+                                                    )}
                                                 </div>
                                               );
                                             }
@@ -1796,16 +1809,39 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                                 'user' && 'justify-end',
                                             )}
                                           >
-                                            {normalizeUIRole(message.role) === 'user' &&
-                                              (message.metadata as Record<string, unknown> | undefined)?.createdAt != null && (
+                                            {normalizeUIRole(message.role) ===
+                                              'user' &&
+                                              (
+                                                message.metadata as
+                                                  | Record<string, unknown>
+                                                  | undefined
+                                              )?.createdAt != null && (
                                                 <Tooltip>
                                                   <TooltipTrigger asChild>
                                                     <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                      {formatMessageTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
+                                                      {formatMessageTime(
+                                                        (
+                                                          message.metadata as Record<
+                                                            string,
+                                                            unknown
+                                                          >
+                                                        ).createdAt as
+                                                          | Date
+                                                          | string,
+                                                      )}
                                                     </span>
                                                   </TooltipTrigger>
                                                   <TooltipContent side="top">
-                                                    {formatMessageDateTime((message.metadata as Record<string, unknown>).createdAt as Date | string)}
+                                                    {formatMessageDateTime(
+                                                      (
+                                                        message.metadata as Record<
+                                                          string,
+                                                          unknown
+                                                        >
+                                                      ).createdAt as
+                                                        | Date
+                                                        | string,
+                                                    )}
                                                   </TooltipContent>
                                                 </Tooltip>
                                               )}
@@ -1991,74 +2027,74 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
         </div>
 
         {messages.length > 0 && (
-        <div className="bg-background border-border/10 relative z-40 shrink-0 border-t">
-          {lastMessageHasSuggestions || badgesFadingOut ? (
-            <div
-              className={cn(
-                'absolute right-0 bottom-full left-0 z-50 flex justify-center pb-3 transition-all duration-300 ease-out',
-                badgesRevealing &&
-                  'animate-in fade-in slide-in-from-bottom-4 duration-300',
-                badgesFadingOut
-                  ? badgesFadeToZero
-                    ? 'pointer-events-none translate-y-0 opacity-0'
-                    : 'translate-y-0 opacity-100'
-                  : showBadgeSlotVisible
-                    ? 'translate-y-0 opacity-100'
-                    : 'pointer-events-none invisible translate-y-4 opacity-0',
-                !showSuggestionBadges &&
-                  'pointer-events-none translate-y-2 opacity-0',
-              )}
-              data-test="suggestion-badges-container"
-            >
-              {isLoading && !badgesFadingOut ? (
-                <SuggestionBadgesSkeleton />
-              ) : (showBadges || badgesFadingOut) &&
-                badgeSuggestions.length > 0 ? (
-                <SuggestionBadges
-                  suggestions={badgeSuggestions}
-                  onSuggestionClick={handleBadgeSuggestionClick}
-                  disabled={badgesFadingOut || !showSuggestionBadges}
-                />
-              ) : null}
+          <div className="bg-background border-border/10 relative z-40 shrink-0 border-t">
+            {lastMessageHasSuggestions || badgesFadingOut ? (
+              <div
+                className={cn(
+                  'absolute right-0 bottom-full left-0 z-50 flex justify-center pb-3 transition-all duration-300 ease-out',
+                  badgesRevealing &&
+                    'animate-in fade-in slide-in-from-bottom-4 duration-300',
+                  badgesFadingOut
+                    ? badgesFadeToZero
+                      ? 'pointer-events-none translate-y-0 opacity-0'
+                      : 'translate-y-0 opacity-100'
+                    : showBadgeSlotVisible
+                      ? 'translate-y-0 opacity-100'
+                      : 'pointer-events-none invisible translate-y-4 opacity-0',
+                  !showSuggestionBadges &&
+                    'pointer-events-none translate-y-2 opacity-0',
+                )}
+                data-test="suggestion-badges-container"
+              >
+                {isLoading && !badgesFadingOut ? (
+                  <SuggestionBadgesSkeleton />
+                ) : (showBadges || badgesFadingOut) &&
+                  badgeSuggestions.length > 0 ? (
+                  <SuggestionBadges
+                    suggestions={badgeSuggestions}
+                    onSuggestionClick={handleBadgeSuggestionClick}
+                    disabled={badgesFadingOut || !showSuggestionBadges}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mx-auto w-full max-w-4xl px-6 pb-6">
+              <PromptInputInner
+                sendMessage={sendMessage}
+                state={state}
+                setState={setState}
+                textareaRef={textareaRef}
+                status={status}
+                stop={stop}
+                setMessages={setMessages}
+                messages={messages}
+                models={models}
+                allModels={allModels}
+                onModelsChange={onModelsChange}
+                usage={usage}
+                datasources={datasources}
+                selectedDatasources={selectedDatasources}
+                onDatasourceSelectionChange={onDatasourceSelectionChange}
+                getDatasourcesForSend={getDatasourcesForSend}
+                pluginLogoMap={pluginLogoMap}
+                datasourcesLoading={datasourcesLoading}
+                scrollToBottomRef={scrollToBottomRef}
+                showSuggestionBadges={showSuggestionBadges}
+                onShowSuggestionBadgesChange={setShowSuggestionBadges}
+                webSearch={state.webSearch}
+                onWebSearchChange={(v) =>
+                  setState((prev) => ({ ...prev, webSearch: v }))
+                }
+                preferredSearchEngine={
+                  preferredSearchEngineProp ?? preferredSearchEngine
+                }
+                onPreferredSearchEngineChange={(engine) => {
+                  setPreferredSearchEngine(engine);
+                  onPreferredSearchEngineChange?.(engine);
+                }}
+              />
             </div>
-          ) : null}
-          <div className="mx-auto w-full max-w-4xl px-6 pb-6">
-            <PromptInputInner
-              sendMessage={sendMessage}
-              state={state}
-              setState={setState}
-              textareaRef={textareaRef}
-              status={status}
-              stop={stop}
-              setMessages={setMessages}
-              messages={messages}
-              models={models}
-              allModels={allModels}
-              onModelsChange={onModelsChange}
-              usage={usage}
-              datasources={datasources}
-              selectedDatasources={selectedDatasources}
-              onDatasourceSelectionChange={onDatasourceSelectionChange}
-              getDatasourcesForSend={getDatasourcesForSend}
-              pluginLogoMap={pluginLogoMap}
-              datasourcesLoading={datasourcesLoading}
-              scrollToBottomRef={scrollToBottomRef}
-              showSuggestionBadges={showSuggestionBadges}
-              onShowSuggestionBadgesChange={setShowSuggestionBadges}
-              webSearch={state.webSearch}
-              onWebSearchChange={(v) =>
-                setState((prev) => ({ ...prev, webSearch: v }))
-              }
-              preferredSearchEngine={
-                preferredSearchEngineProp ?? preferredSearchEngine
-              }
-              onPreferredSearchEngineChange={(engine) => {
-                setPreferredSearchEngine(engine);
-                onPreferredSearchEngineChange?.(engine);
-              }}
-            />
           </div>
-        </div>
         )}
       </div>
 
