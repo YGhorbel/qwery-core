@@ -1,5 +1,13 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { generateText } from 'ai';
+
+vi.mock('ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('ai')>();
+  return {
+    ...actual,
+    generateText: vi.fn(),
+  };
+});
 import type { Conversation, Message } from '@qwery/domain/entities';
 import { MessageRole } from '@qwery/domain/entities';
 import type { Repositories } from '@qwery/domain/repositories';
@@ -425,7 +433,7 @@ describe('SessionCompaction prune', () => {
       new Date(base.getTime()),
     );
 
-    const generateTextMock = generateText as unknown as vi.Mock;
+    const generateTextMock = vi.mocked(generateText);
     generateTextMock.mockRejectedValueOnce(new Error('compaction-fail'));
 
     await expect(
