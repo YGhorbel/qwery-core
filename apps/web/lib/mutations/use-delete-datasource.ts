@@ -7,6 +7,13 @@ import {
   getDatasourcesKey,
 } from '~/lib/queries/use-get-datasources';
 
+function isDatasourceMetadataQuery(
+  queryKey: readonly unknown[],
+  datasourceId: string,
+) {
+  return queryKey[0] === 'datasource-metadata' && queryKey[3] === datasourceId;
+}
+
 export function useDeleteDatasource(
   datasourceRepository: IDatasourceRepository,
   onSuccess: () => void,
@@ -27,7 +34,7 @@ export function useDeleteDatasource(
       );
       return await deleteDatasourceService.execute(id);
     },
-    onSuccess: async (_result, { projectId }) => {
+    onSuccess: async (_result, { id, projectId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getDatasourcesKey() }),
         projectId
@@ -35,6 +42,9 @@ export function useDeleteDatasource(
               queryKey: getDatasourcesByProjectIdKey(projectId),
             })
           : Promise.resolve(),
+        queryClient.removeQueries({
+          predicate: ({ queryKey }) => isDatasourceMetadataQuery(queryKey, id),
+        }),
       ]);
       onSuccess();
     },

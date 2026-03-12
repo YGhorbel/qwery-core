@@ -12,6 +12,13 @@ import {
   getDatasourcesKey,
 } from '~/lib/queries/use-get-datasources';
 
+function isDatasourceMetadataQuery(
+  queryKey: readonly unknown[],
+  datasourceId: string,
+) {
+  return queryKey[0] === 'datasource-metadata' && queryKey[3] === datasourceId;
+}
+
 export function useCreateDatasource(
   datasourceRepository: IDatasourceRepository,
   onSuccess: (datasource: Datasource) => void,
@@ -27,14 +34,18 @@ export function useCreateDatasource(
       return await createDatasourceService.execute(datasourceDTO);
     },
     onSuccess: async (datasourceOutput: DatasourceOutput) => {
-      // Refetch the datasources list to ensure fresh data is loaded
-      await queryClient.refetchQueries({
-        queryKey: getDatasourcesByProjectIdKey(datasourceOutput.projectId),
-      });
-      // Also invalidate the general datasources query
-      queryClient.invalidateQueries({
-        queryKey: getDatasourcesKey(),
-      });
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: getDatasourcesByProjectIdKey(datasourceOutput.projectId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getDatasourcesKey(),
+        }),
+        queryClient.removeQueries({
+          predicate: ({ queryKey }) =>
+            isDatasourceMetadataQuery(queryKey, datasourceOutput.id),
+        }),
+      ]);
       onSuccess(datasourceOutput as unknown as Datasource);
     },
     onError,

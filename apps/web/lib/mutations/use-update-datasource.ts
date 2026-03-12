@@ -12,6 +12,13 @@ import {
   getDatasourcesKey,
 } from '~/lib/queries/use-get-datasources';
 
+function isDatasourceMetadataQuery(
+  queryKey: readonly unknown[],
+  datasourceId: string,
+) {
+  return queryKey[0] === 'datasource-metadata' && queryKey[3] === datasourceId;
+}
+
 export function useUpdateDatasource(
   datasourceRepository: IDatasourceRepository,
   onSuccess: (datasource: Datasource) => void,
@@ -36,6 +43,10 @@ export function useUpdateDatasource(
               ),
             })
           : Promise.resolve(),
+        queryClient.removeQueries({
+          predicate: ({ queryKey }) =>
+            isDatasourceMetadataQuery(queryKey, datasourceOutput.id),
+        }),
       ]);
       onSuccess(datasourceOutput as unknown as Datasource);
     },
