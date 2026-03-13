@@ -2183,14 +2183,12 @@ function PromptInputInner({
     input: string;
     model: string;
     webSearch: boolean;
-    searchEngine: string;
   };
   setState: React.Dispatch<
     React.SetStateAction<{
       input: string;
       model: string;
       webSearch: boolean;
-      searchEngine: string;
     }>
   >;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -2242,7 +2240,7 @@ function PromptInputInner({
           body: {
             model: state.model,
             webSearch: state.webSearch,
-            searchEngine: state.searchEngine,
+            searchEngine: preferredSearchEngine,
             datasources: bodyDatasources,
           },
         },

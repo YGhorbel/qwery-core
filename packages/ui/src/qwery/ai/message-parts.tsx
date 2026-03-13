@@ -2035,10 +2035,11 @@ export function ToolPart({
             slug: d.slug,
             datasource_provider: d.datasource_provider,
           }));
-        const schemaData =
+        const schemaData: DatasourceMetadata | SimpleSchema[] =
           output?.detailLevel === 'simple' && output?.datasources
             ? output.datasources.flatMap((d) => d.schema)
-            : output?.schema;
+            : (output!.schema as DatasourceMetadata);
+
         return (
           <SchemaVisualizer
             schema={schemaData}
