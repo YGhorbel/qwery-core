@@ -951,11 +951,6 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
 
   const handleBadgeSuggestionClick = useCallback(
     async (cleanSuggestionText: string, metadata?: SuggestionMetadata) => {
-      console.log('[agent-ui] handleBadgeSuggestionClick', {
-        text: cleanSuggestionText,
-        metadataJson: JSON.stringify(metadata ?? {}),
-        metadata,
-      });
       const ok =
         onBeforeSuggestionSend === undefined
           ? true

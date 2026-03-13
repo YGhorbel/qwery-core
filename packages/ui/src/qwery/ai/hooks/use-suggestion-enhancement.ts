@@ -70,11 +70,6 @@ export function useSuggestionEnhancement({
       sourceSuggestionId: string | undefined,
       metadata?: SuggestionMetadata,
     ) => {
-      console.log('[SuggestionFlow] handleSuggestionClick', {
-        text: cleanSuggestionText?.slice(0, 50),
-        metadata,
-        hasOnBefore: !!onBeforeSuggestionSend,
-      });
       if (disabledRef.current || !sendMessage) {
         if (disabledRef.current) {
           // Agent is not idle – show a gentle toast and ignore the click

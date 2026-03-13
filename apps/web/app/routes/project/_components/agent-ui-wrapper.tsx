@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   useCallback,
-  useEffect,
 } from 'react';
 import QweryAgentUI from '@qwery/ui/agent-ui';
 import {
@@ -126,7 +125,7 @@ import { useUpdateConversation } from '~/lib/mutations/use-conversation';
 import { useSubmitFeedback } from '~/lib/mutations/use-submit-feedback';
 import { useNotebookSidebar } from '~/lib/context/notebook-sidebar-context';
 import { PROMPT_SOURCE, NOTEBOOK_CELL_TYPE } from '@qwery/agent-factory-sdk';
-import { useAgentStatus, formatRelativeTime } from '@qwery/ui/ai';
+import { formatRelativeTime } from '@qwery/ui/ai';
 import type { FeedbackPayload } from '@qwery/ui/ai';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -139,9 +138,10 @@ import {
   openTableInNewTab,
 } from '~/lib/utils/datasource-navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { getConversationsKey } from '~/lib/queries/use-get-conversations';
 import { getConversationKey } from '~/lib/mutations/use-conversation';
-import { getConversationsByProjectKey } from '~/lib/queries/use-get-conversations-by-project';
+import { useConversationDatasourceSync } from '~/lib/hooks/use-conversation-datasource-sync';
+import { useConversationRenameToast } from '~/lib/hooks/use-conversation-rename-toast';
+import { useNotebookContext } from '~/lib/hooks/use-notebook-context';
 
 type SendMessageFn = (
   message: { text: string },
@@ -266,81 +266,34 @@ export const AgentUIWrapper = forwardRef<
   );
   const {
     getCellDatasource,
-    clearCellDatasource,
     getNotebookCellType,
     getCellId,
     getSqlPasteHandler,
-    notifyLoadingStateChange,
   } = useNotebookSidebar();
 
-  // Track agent processing state for notebook loading sync
-  const { isProcessing } = useAgentStatus();
-
-  // Load current conversation to get existing datasources
   const { data: conversation, isLoading: isConversationLoading } =
     useGetConversationBySlug(repositories.conversation, conversationSlug);
 
-  const previousConversationTitleRef = useRef<string | undefined>(undefined);
   const interactionCountRef = useRef(0);
-
   const projectContext = useProjectOptional();
   const datasourceProjectId =
     projectContext?.projectId ?? workspace.projectId ?? '';
 
-  useEffect(() => {
-    if (!conversation) return;
-    const previousTitle = previousConversationTitleRef.current;
-    const currentTitle = conversation.title;
+  useConversationRenameToast(conversation, datasourceProjectId);
 
-    const didRenameFromNewToCustom =
-      previousTitle === 'New Conversation' &&
-      currentTitle !== 'New Conversation' &&
-      currentTitle !== previousTitle;
+  const {
+    conversationDatasources,
+    selectedDatasources,
+    setPendingDatasources,
+    handleDatasourceSelectionChange,
+    selectedDatasourcesRef,
+  } = useConversationDatasourceSync({
+    conversationRepository: repositories.conversation,
+    conversation,
+    workspace,
+  });
 
-    if (didRenameFromNewToCustom) {
-      toast.success(
-        t('chat:renamed_success', {
-          title: currentTitle,
-        }),
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: getConversationKey(conversation.slug),
-      });
-      queryClient.invalidateQueries({
-        queryKey: getConversationsKey(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: getConversationsByProjectKey(datasourceProjectId),
-      });
-    }
-
-    previousConversationTitleRef.current = currentTitle;
-  }, [conversation, queryClient, t, datasourceProjectId]);
-
-  // Get cell datasource from notebook context (if opened from a cell)
-  const cellDatasource = getCellDatasource();
-
-  // Derive selected datasources from conversation
-  const conversationDatasources = useMemo(
-    () => conversation?.datasources || [],
-    [conversation?.datasources],
-  );
-
-  // Track pending user changes (cleared after successful mutation)
-  const [pendingDatasources, setPendingDatasources] = useState<string[] | null>(
-    null,
-  );
-
-  // Track notebook context state for paste functionality
-  const [notebookContextState, setNotebookContextState] = useState<
-    | {
-        cellId: number;
-        notebookCellType: 'query' | 'prompt';
-        datasourceId: string;
-      }
-    | undefined
-  >(undefined);
+  const [notebookContext, setNotebookContext] = useNotebookContext();
 
   const supportedModels = useMemo(
     () => SUPPORTED_MODELS as { name: string; value: string }[],
@@ -363,74 +316,8 @@ export const AgentUIWrapper = forwardRef<
     [],
   );
 
-  // Track if we've already initialized datasource from cell to prevent overwriting user selections
-  const initializedCellDatasourceRef = useRef<string | null>(null);
-
   const noDatasourceDialogRef = useRef<NoDatasourceDialogRef | null>(null);
-
-  // Mutation to update conversation datasources
   const updateConversation = useUpdateConversation(repositories.conversation);
-
-  // Set pending datasources for immediate UI update when cell datasource changes.
-  // The actual conversation update happens atomically in sendMessage to avoid
-  // a race condition where concurrent updateConversation.mutate calls cause
-  // React Query to swallow the sendMessage's resolve callback (2-click bug).
-  useEffect(() => {
-    if (
-      cellDatasource &&
-      conversation?.id &&
-      initializedCellDatasourceRef.current !== cellDatasource &&
-      !conversationDatasources.includes(cellDatasource)
-    ) {
-      initializedCellDatasourceRef.current = cellDatasource;
-
-      updateConversation.mutate(
-        {
-          id: conversation.id,
-          datasources: [cellDatasource],
-          updatedBy: workspace.userId,
-        },
-        {
-          onSuccess: () => {
-            setPendingDatasources([cellDatasource]);
-          },
-        },
-      );
-    } else if (cellDatasource) {
-      if (initializedCellDatasourceRef.current !== cellDatasource) {
-        initializedCellDatasourceRef.current = cellDatasource;
-      }
-      requestAnimationFrame(() => {
-        setPendingDatasources([cellDatasource]);
-      });
-    } else {
-      initializedCellDatasourceRef.current = null;
-    }
-  }, [
-    cellDatasource,
-    conversation?.id,
-    conversationDatasources,
-    updateConversation,
-    workspace.userId,
-  ]);
-
-  useEffect(() => {
-    const id = setTimeout(() => setPendingDatasources(null), 0);
-    return () => clearTimeout(id);
-  }, [conversation?.id]);
-
-  // Priority for display: cellDatasource > pending datasources > conversation datasources
-  const selectedDatasources = useMemo(() => {
-    if (cellDatasource) return [cellDatasource];
-    return pendingDatasources !== null
-      ? pendingDatasources
-      : conversationDatasources;
-  }, [cellDatasource, pendingDatasources, conversationDatasources]);
-
-  const selectedDatasourcesRef = useRef<string[]>([]);
-  useEffect(() => {
-    selectedDatasourcesRef.current = selectedDatasources;
-  }, [selectedDatasources]);
 
   const datasources = useGetDatasourcesByProjectId(
     repositories.datasource,
@@ -476,8 +363,6 @@ export const AgentUIWrapper = forwardRef<
     [conversationSlug],
   );
 
-  // Handle sendMessage and model from QweryAgentUI
-  // eslint-disable react-hooks/preserve-manual-memoization -- React Compiler warning about dependency inference
   const handleSendMessageReady = useCallback(
     (sendMessageFn: SendMessageFn, model: string) => {
       internalSendMessageRef.current = sendMessageFn;
@@ -563,7 +448,7 @@ export const AgentUIWrapper = forwardRef<
               currentNotebookCellType || NOTEBOOK_CELL_TYPE.PROMPT;
 
             if (currentCellId !== undefined && currentCellDs) {
-              setNotebookContextState({
+              setNotebookContext({
                 cellId: currentCellId,
                 notebookCellType: (currentNotebookCellType ||
                   NOTEBOOK_CELL_TYPE.PROMPT) as 'query' | 'prompt',
@@ -640,6 +525,8 @@ export const AgentUIWrapper = forwardRef<
       updateConversation,
       workspace.username,
       workspace.userId,
+      setPendingDatasources,
+      setNotebookContext,
     ],
   );
 
@@ -719,53 +606,6 @@ export const AgentUIWrapper = forwardRef<
     scheduleConversationRefresh,
   ]);
 
-  // Handle datasource selection change and save to conversation
-  const handleDatasourceSelectionChange = useCallback(
-    (datasourceIds: string[]) => {
-      clearCellDatasource();
-      selectedDatasourcesRef.current = datasourceIds;
-      setPendingDatasources(datasourceIds);
-
-      // Save to conversation if conversation is loaded
-      // CRITICAL: Update conversation synchronously to ensure agent uses new datasources
-      if (conversation?.id) {
-        // Check if datasources actually changed
-        const currentSorted = [...(conversationDatasources || [])].sort();
-        const newSorted = [...datasourceIds].sort();
-        const datasourcesChanged =
-          currentSorted.length !== newSorted.length ||
-          !currentSorted.every((dsId, index) => dsId === newSorted[index]);
-
-        if (datasourcesChanged) {
-          updateConversation.mutate(
-            {
-              id: conversation.id,
-              datasources: datasourceIds,
-              updatedBy: workspace.username || workspace.userId || 'system',
-            },
-            {
-              onSuccess: () => {
-                // Clear pending state after successful mutation
-                setPendingDatasources(null);
-              },
-            },
-          );
-        } else {
-          // Datasources already match, clear pending so we use conversation as source of truth
-          setPendingDatasources(null);
-        }
-      }
-    },
-    [
-      conversation,
-      conversationDatasources,
-      updateConversation,
-      workspace.username,
-      workspace.userId,
-      clearCellDatasource,
-    ],
-  );
-
   const _onBeforeSuggestionSend = useCallback(
     (
       text: string,
@@ -790,38 +630,6 @@ export const AgentUIWrapper = forwardRef<
     isMessagesLoading ||
     isConversationLoading ||
     (initialMessages === undefined && !conversation);
-
-  // Update notebook context state when context values are available
-  useEffect(() => {
-    const cellId = getCellId();
-    const notebookCellType = getNotebookCellType();
-    const datasourceId = getCellDatasource();
-
-    if (cellId !== undefined && datasourceId) {
-      const newContext = {
-        cellId,
-        notebookCellType: (notebookCellType || NOTEBOOK_CELL_TYPE.PROMPT) as
-          | 'query'
-          | 'prompt',
-        datasourceId,
-      };
-      requestAnimationFrame(() => {
-        setNotebookContextState(newContext);
-      });
-    } else {
-      // Don't clear immediately - keep it for a bit in case tool output arrives
-      // Only clear if all values are gone (user navigated away)
-      // Use a timeout to keep context for a reasonable time (30 seconds)
-      if (cellId === undefined && !datasourceId) {
-        const timeoutId = setTimeout(() => {
-          setNotebookContextState(undefined);
-        }, 30000); // Keep for 30 seconds
-        return () => clearTimeout(timeoutId);
-      }
-    }
-  }, [getCellId, getNotebookCellType, getCellDatasource]);
-
-  const notebookContext = notebookContextState;
 
   const _getDatasourceTooltip = useCallback(
     (idOrSlug: string) => {
@@ -880,12 +688,6 @@ export const AgentUIWrapper = forwardRef<
   );
 
   const pasteHandler = getSqlPasteHandler();
-
-  // Sync loading state with notebook when processing state changes
-  useEffect(() => {
-    const cellId = getCellId();
-    notifyLoadingStateChange(cellId, isProcessing);
-  }, [isProcessing, getCellId, notifyLoadingStateChange]);
 
   return (
     <>
