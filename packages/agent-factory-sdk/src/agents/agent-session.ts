@@ -334,6 +334,10 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       })}\n\n`;
       pendingRealtimeChunks.push(encoder.encode(realtimeStatLine));
     };
+    const lastRunQueryResultRef: {
+      current: { columns: string[]; rows: unknown[] } | null;
+    } = { current: null };
+
     const getContext = (options: {
       toolCallId?: string;
       abortSignal?: AbortSignal;
@@ -347,6 +351,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
         repositories,
         conversationId,
         attachedDatasources: input.datasources,
+        lastRunQueryResult: lastRunQueryResultRef,
       },
       messages: msgs,
       ask: async (req: AskRequest) => {

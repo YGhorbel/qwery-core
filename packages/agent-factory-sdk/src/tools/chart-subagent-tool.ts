@@ -1,17 +1,17 @@
 import { z } from 'zod';
 import { Tool } from './tool';
-import { generateChart } from '../agents/tools/generate-chart';
+import { runChartSubagent } from '../agents/chart-subagent';
 import { getLogger } from '@qwery/shared/logger';
 
 const DESCRIPTION =
-  'Generates a chart configuration JSON for visualization. Takes query results and creates a chart (bar, line, or pie) with proper data transformation, colors, and labels. Use this after selecting a chart type or when the user requests a specific chart type.';
+  'Chart subagent entrypoint. Generates a chart configuration JSON for visualization using chart-specific prompts and logic, based on query results and user intent.';
 
 const queryResultsSchema = z.object({
   rows: z.array(z.record(z.string(), z.unknown())).optional().default([]),
   columns: z.array(z.string()),
 });
 
-export const GenerateChartTool = Tool.define('generateChart', {
+export const ChartSubagentTool = Tool.define('chartSubagent', {
   description: DESCRIPTION,
   parameters: z.object({
     chartType: z.enum(['bar', 'line', 'pie']).optional(),
@@ -43,14 +43,15 @@ export const GenerateChartTool = Tool.define('generateChart', {
       } else if (!fullQueryResults) {
         const logger = await getLogger();
         logger.warn(
-          '[GenerateChartTool] No queryResults provided and no last runQuery result in context; using empty results.',
+          '[ChartSubagentTool] No queryResults provided and no last runQuery result in context; using empty results.',
         );
         fullQueryResults = { rows: [], columns: [] };
       }
     }
+
     const startTime = performance.now();
     const generateStartTime = performance.now();
-    const result = await generateChart({
+    const result = await runChartSubagent({
       chartType: params.chartType,
       queryResults: fullQueryResults,
       sqlQuery: params.sqlQuery ?? '',
@@ -60,7 +61,9 @@ export const GenerateChartTool = Tool.define('generateChart', {
     const totalTime = performance.now() - startTime;
     const logger = await getLogger();
     logger.debug(
-      `[GenerateChartTool] [PERF] generateChart TOTAL took ${totalTime.toFixed(2)}ms (generate: ${generateTime.toFixed(2)}ms)`,
+      `[ChartSubagentTool] [PERF] runChartSubagent TOTAL took ${totalTime.toFixed(
+        2,
+      )}ms (generate: ${generateTime.toFixed(2)}ms)`,
     );
     return result;
   },
