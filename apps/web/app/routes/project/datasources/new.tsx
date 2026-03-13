@@ -898,9 +898,7 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
                   onValidityChange={setIsFormValid}
                 />
               ) : extensionSchema.isLoading ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  Loading form…
-                </div>
+                <div className="py-8" />
               ) : null}
             </div>
 

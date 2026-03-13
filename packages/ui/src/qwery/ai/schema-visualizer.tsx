@@ -62,18 +62,6 @@ export interface SchemaVisualizerProps {
   ) => void;
 }
 
-type DisplayColumn = {
-  id: string;
-  name: string;
-  type: string;
-};
-
-type DisplayTable = {
-  key: string;
-  label: string;
-  columns: DisplayColumn[];
-};
-
 function matchesTableName(candidate: string, tableName?: string): boolean {
   if (!tableName) {
     return true;
@@ -154,14 +142,14 @@ export function SchemaVisualizer({
             ({
               id: 0,
               name: table.tableName,
-              schema: groupName,
+              schema: simpleSchema.schemaName,
               columns: [],
               resolvedColumns: table.columns.map((col, i) => ({
                 id: String(i),
                 table_id: 0,
                 name: col.columnName,
                 data_type: col.columnType,
-                schema: groupName,
+                schema: simpleSchema.schemaName,
                 table: table.tableName,
                 ordinal_position: i,
                 is_nullable: false,
@@ -357,9 +345,10 @@ export function SchemaVisualizer({
               const name =
                 datasource?.name ?? e.datasourceName ?? e.datasourceId;
               const provider = datasource?.datasource_provider;
+              const providerLabel = provider?.toUpperCase();
               const label = [
                 e.datasourceName ?? e.datasourceId,
-                provider ? `(${provider})` : null,
+                providerLabel ? `(${providerLabel})` : null,
               ]
                 .filter(Boolean)
                 .join(' ');
@@ -520,7 +509,7 @@ export function SchemaVisualizer({
                 >
                   <CollapsibleTrigger
                     className={cn(
-                      'flex w-full items-center justify-between gap-2 transition-colors',
+                      'flex w-full cursor-pointer items-center justify-between gap-2 transition-colors',
                       isMinimal
                         ? 'py-2 pr-2 pl-4'
                         : 'hover:bg-muted/50 px-4 py-3',
@@ -532,7 +521,15 @@ export function SchemaVisualizer({
                         isMinimal ? 'text-sm' : 'text-base',
                       )}
                     >
-                      {schemaNameOnly(dsName)}
+                      {(() => {
+                        const schemaLabel = schemaNameOnly(dsName);
+                        const datasourceLabel = displayInfo.name;
+                        if (!datasourceLabel) return schemaLabel;
+                        if (datasourceLabel === schemaLabel) {
+                          return datasourceLabel;
+                        }
+                        return `${datasourceLabel} · ${schemaLabel}`;
+                      })()}
                     </span>
                     <div className="flex shrink-0 items-center gap-2">
                       <span

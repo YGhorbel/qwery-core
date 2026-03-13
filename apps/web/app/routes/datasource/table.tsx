@@ -82,11 +82,7 @@ export default function TablePage(props: Route.ComponentProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <p className="text-muted-foreground text-sm">
-          {t('datasource.table.loading', {
-            defaultValue: 'Loading table...',
-          })}
-        </p>
+        <div className="bg-muted h-6 w-24 animate-pulse rounded" />
       </div>
     );
   }

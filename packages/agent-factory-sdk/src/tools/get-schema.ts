@@ -29,7 +29,7 @@ function schemaPrefix(datasource: {
   slug?: string | null;
   id: string;
 }): string {
-  const raw = datasource.name || datasource.slug || datasource.id;
+  const raw = datasource.slug || datasource.name || datasource.id;
   return (
     String(raw)
       .replace(/\s+/g, '_')
@@ -155,7 +155,12 @@ export const GetSchemaTool = Tool.define('getSchema', {
                 void (closeResult as Promise<unknown>).catch(() => {});
               }
             }
-            return { datasourceId, datasource, datasourceDisplayName, metadata };
+            return {
+              datasourceId,
+              datasource,
+              datasourceDisplayName,
+              metadata,
+            };
           } catch (err) {
             return {
               datasourceId,

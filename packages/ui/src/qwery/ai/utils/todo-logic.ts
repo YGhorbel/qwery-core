@@ -49,7 +49,7 @@ export function parseTodosFromPart(part: {
         return [];
       }
     }
-    if (typeof output === 'object' && 'todos' in output) {
+    if (typeof output === 'object' && output !== null && 'todos' in output) {
       const todos = (output as { todos: ParsedTodo[] }).todos;
       return Array.isArray(todos) ? todos : [];
     }

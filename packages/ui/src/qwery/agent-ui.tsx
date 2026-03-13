@@ -1121,14 +1121,6 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
               {isLoading ? (
                 <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
                   <BotAvatar size={12} isLoading={true} />
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium">
-                      Loading conversation...
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      Please wait while we load your messages
-                    </p>
-                  </div>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex min-h-full min-w-0 flex-1 flex-col items-center justify-center gap-8 py-8 sm:min-h-[70vh]">
@@ -1262,14 +1254,6 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                 {isLoading ? (
                   <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
                     <BotAvatar size={12} isLoading={true} />
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium">
-                        Loading conversation...
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Please wait while we load your messages
-                      </p>
-                    </div>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex min-h-full min-w-0 flex-1 flex-col items-center justify-center gap-8 py-8 sm:min-h-[70vh]">

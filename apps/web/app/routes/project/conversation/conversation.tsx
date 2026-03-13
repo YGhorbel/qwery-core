@@ -276,12 +276,6 @@ export default function ConversationPage() {
     return (
       <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
         <BotAvatar size={12} isLoading={true} />
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">Loading conversation...</h3>
-          <p className="text-muted-foreground text-sm">
-            Please wait while we load your messages
-          </p>
-        </div>
       </div>
     );
   }

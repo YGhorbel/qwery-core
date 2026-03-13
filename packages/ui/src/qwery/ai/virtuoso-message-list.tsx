@@ -149,6 +149,9 @@ export const VirtuosoMessageList = forwardRef<
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       messageItemProps.lastAssistantMessage,
+      messageItemProps.model,
+      messageItemProps.setModel,
+      messageItemProps.models,
       messageItemProps.editingMessageId,
       messageItemProps.editText,
       messageItemProps.editDatasources,

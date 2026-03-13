@@ -164,13 +164,7 @@ export function ProjectGuard({ children }: { children: ReactNode }) {
   const ctx = useProject();
 
   if (ctx.isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <span className="text-muted-foreground text-sm">
-          Loading project...
-        </span>
-      </div>
-    );
+    return <div className="flex h-full items-center justify-center" />;
   }
 
   if (!ctx.project || !ctx.organizationId) {

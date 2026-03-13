@@ -7,7 +7,11 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { BotAvatar } from '../bot-avatar';
 import { Button } from '../../shadcn/button';
-import { Textarea } from '../../shadcn/textarea';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from '../../shadcn/input-group';
 import {
   CopyIcon,
   RefreshCcwIcon,
@@ -17,9 +21,9 @@ import {
   MoreVertical as MoreVerticalIcon,
   FileText as FileTextIcon,
   Archive as ArchiveIcon,
+  ArrowUp,
 } from 'lucide-react';
 import { Message, MessageContent } from '../../ai-elements/message';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../shadcn/tooltip';
 import { normalizeUIRole } from '@qwery/shared/message-role-utils';
 import {
   Source,
@@ -27,11 +31,10 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from '../../ai-elements/sources';
+import { ModelSelector } from './model-selector';
 import { ReasoningPart } from './message-parts';
 import { StreamdownWithSuggestions } from './streamdown-with-suggestions';
 import {
-  formatMessageDateTime,
-  formatMessageTime,
   UserMessageBubble,
   parseMessageWithContext,
 } from './user-message-bubble';
@@ -65,61 +68,14 @@ import {
   DropdownMenuTrigger,
 } from '../../shadcn/dropdown-menu';
 
-function getMessageDatasources(
-  message: UIMessage,
-  datasources: DatasourceItem[] | undefined,
-  messages: UIMessage[],
-  selectedDatasources: string[] | undefined,
-): DatasourceItem[] | undefined {
-  const resolveIds = (ids: string[]) =>
-    (ids || [])
-      .map((dsId) => datasources?.find((ds) => ds.id === dsId))
-      .filter((ds): ds is DatasourceItem => ds !== undefined);
-
-  if (message.metadata && typeof message.metadata === 'object') {
-    const metadata = message.metadata as Record<string, unknown>;
-    if ('datasources' in metadata && Array.isArray(metadata.datasources)) {
-      const resolved = resolveIds(metadata.datasources as string[]);
-      if (resolved.length > 0) return resolved;
-    }
-  }
-
-  const isUser = normalizeUIRole(message.role) === 'user';
-  if (isUser && selectedDatasources?.length) {
-    const resolved = resolveIds(selectedDatasources);
-    if (resolved.length > 0) return resolved;
-  }
-
-  const msgIndex = messages.findIndex((m) => m.id === message.id);
-  if (msgIndex > 0) {
-    for (let i = msgIndex - 1; i >= 0; i--) {
-      const prev = messages[i];
-      if (
-        normalizeUIRole(prev?.role) === 'user' &&
-        prev?.metadata &&
-        typeof prev.metadata === 'object'
-      ) {
-        const meta = prev.metadata as Record<string, unknown>;
-        if (Array.isArray(meta.datasources)) {
-          const resolved = resolveIds(meta.datasources as string[]);
-          if (resolved.length > 0) return resolved;
-        }
-      }
-    }
-  }
-
-  if (selectedDatasources?.length) {
-    const resolved = resolveIds(selectedDatasources);
-    if (resolved.length > 0) return resolved;
-  }
-  return undefined;
-}
-
 export interface MessageItemProps {
   message: UIMessage;
   messages: UIMessage[];
   status: ChatStatus | undefined;
   lastAssistantMessage: UIMessage | undefined;
+  model?: string;
+  setModel?: (model: string) => void;
+  models?: { name: string; value: string }[];
   editingMessageId: string | null;
   editText: string;
   editDatasources: string[];
@@ -204,6 +160,9 @@ function MessageItemComponent({
   messages,
   status,
   lastAssistantMessage,
+  model,
+  setModel,
+  models,
   editingMessageId,
   editText,
   editDatasources,
@@ -435,12 +394,6 @@ function MessageItemComponent({
                         return undefined;
                       })();
 
-                      const lastUserMessage = [...messages]
-                        .reverse()
-                        .find((msg) => normalizeUIRole(msg.role) === 'user');
-                      const isLastUserMessage =
-                        lastUserMessage?.id === message.id;
-
                       return (
                         <div
                           key={`${message.id}-${i}`}
@@ -457,93 +410,77 @@ function MessageItemComponent({
                             {isEditing &&
                             normalizeUIRole(message.role) === 'user' ? (
                               (() => {
-                                const { text: _cleanText, context } =
-                                  parseMessageWithContext(part.text);
-                                const hasContext =
-                                  context?.lastAssistantResponse;
-
                                 return (
                                   <>
-                                    {(hasContext ||
-                                      (datasources && pluginLogoMap)) && (
-                                      <div className="mb-2 flex w-full min-w-0 items-center justify-between gap-2 overflow-x-hidden">
-                                        {hasContext ? (
-                                          <div className="text-muted-foreground line-clamp-1 min-w-0 flex-1 text-xs">
-                                            <span className="font-medium">
-                                              Context:{' '}
-                                            </span>
-                                            {context.lastAssistantResponse?.substring(
-                                              0,
-                                              100,
-                                            )}
-                                            {(context.lastAssistantResponse
-                                              ?.length ?? 0) > 100 && '...'}
-                                          </div>
-                                        ) : (
-                                          <div className="flex-1" />
-                                        )}
-                                        {datasources && pluginLogoMap && (
-                                          <DatasourceSelector
-                                            selectedDatasources={
-                                              editDatasources
-                                            }
-                                            onSelectionChange={
-                                              onEditDatasourcesChange
-                                            }
-                                            datasources={datasources}
-                                            pluginLogoMap={pluginLogoMap}
-                                            variant="badge"
-                                          />
-                                        )}
+                                    {datasources && pluginLogoMap && (
+                                      <div className="mb-2 flex w-full min-w-0 justify-end overflow-x-hidden">
+                                        <DatasourceSelector
+                                          selectedDatasources={editDatasources}
+                                          onSelectionChange={
+                                            onEditDatasourcesChange
+                                          }
+                                          datasources={datasources}
+                                          pluginLogoMap={pluginLogoMap}
+                                          variant="badge"
+                                        />
                                       </div>
                                     )}
-                                    <div className="group w-full max-w-full min-w-0">
-                                      <Message
-                                        from={message.role}
-                                        className="w-full max-w-full min-w-0"
+                                    <InputGroup className="overflow-hidden">
+                                      <InputGroupTextarea
+                                        value={editText}
+                                        onChange={(e) =>
+                                          onEditTextChange(e.target.value)
+                                        }
+                                        onKeyDown={(e) => {
+                                          if (
+                                            e.key === 'Enter' &&
+                                            (e.metaKey || e.ctrlKey)
+                                          ) {
+                                            e.preventDefault();
+                                            onEditSubmit();
+                                          } else if (e.key === 'Escape') {
+                                            e.preventDefault();
+                                            onEditCancel();
+                                          }
+                                        }}
+                                        className="field-sizing-content max-h-64 min-h-16 px-3"
+                                        autoFocus
+                                      />
+                                      <InputGroupAddon
+                                        align="block-end"
+                                        className="flex min-w-0 justify-between gap-1"
                                       >
-                                        <Textarea
-                                          value={editText}
-                                          onChange={(e) => {
-                                            onEditTextChange(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (
-                                              e.key === 'Enter' &&
-                                              (e.metaKey || e.ctrlKey)
-                                            ) {
-                                              e.preventDefault();
-                                              onEditSubmit();
-                                            } else if (e.key === 'Escape') {
-                                              e.preventDefault();
-                                              onEditCancel();
-                                            }
-                                          }}
-                                          className="bg-muted/50 text-foreground border-primary/30 focus:border-primary min-h-[60px] w-full resize-none rounded-lg border-2 px-4 py-3 text-sm focus:outline-none"
-                                          autoFocus
-                                        />
-                                      </Message>
-                                      <div className="mt-2 flex items-center justify-end gap-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={onEditCancel}
-                                          className="h-8 px-3"
-                                        >
-                                          <XIcon className="mr-1 size-3" />
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={onEditSubmit}
-                                          className="h-8 px-3"
-                                        >
-                                          <CheckIcon className="mr-1 size-3" />
-                                          Save & Regenerate
-                                        </Button>
-                                      </div>
-                                    </div>
+                                        <div className="flex min-w-0 flex-1 items-center gap-1">
+                                          {models && setModel && model && (
+                                            <ModelSelector
+                                              models={models}
+                                              value={model}
+                                              onValueChange={setModel}
+                                            />
+                                          )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={onEditCancel}
+                                            className="h-8 w-8"
+                                            aria-label="Cancel edit"
+                                          >
+                                            <XIcon className="size-4" />
+                                          </Button>
+                                          <Button
+                                            variant="default"
+                                            size="icon"
+                                            onClick={onEditSubmit}
+                                            className="h-8 w-8"
+                                            aria-label="Save and regenerate"
+                                          >
+                                            <ArrowUp className="size-4" />
+                                          </Button>
+                                        </div>
+                                      </InputGroupAddon>
+                                    </InputGroup>
                                   </>
                                 );
                               })()
@@ -564,68 +501,10 @@ function MessageItemComponent({
                                             messageId={message.id}
                                             messages={messages}
                                             datasources={messageDatasources}
-                                            allDatasources={datasources}
                                             pluginLogoMap={pluginLogoMap}
-                                            onEditStart={
-                                              datasources && pluginLogoMap
-                                                ? (txt, ids) =>
-                                                    onEditStart(
-                                                      message.id,
-                                                      txt,
-                                                      ids,
-                                                    )
-                                                : undefined
-                                            }
-                                            isLastUserMessage={
-                                              isLastUserMessage
-                                            }
-                                            timestamp={
-                                              (
-                                                message.metadata as
-                                                  | Record<string, unknown>
-                                                  | undefined
-                                              )?.createdAt as
-                                                | Date
-                                                | string
-                                                | undefined
-                                            }
                                           />
                                           {isLastTextPart && (
                                             <div className="mt-1 flex items-center justify-end gap-1">
-                                              {(
-                                                message.metadata as
-                                                  | Record<string, unknown>
-                                                  | undefined
-                                              )?.createdAt != null && (
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                      {formatMessageTime(
-                                                        (
-                                                          message.metadata as Record<
-                                                            string,
-                                                            unknown
-                                                          >
-                                                        ).createdAt as
-                                                          | Date
-                                                          | string,
-                                                      )}
-                                                    </span>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent side="top">
-                                                    {formatMessageDateTime(
-                                                      (
-                                                        message.metadata as Record<
-                                                          string,
-                                                          unknown
-                                                        >
-                                                      ).createdAt as
-                                                        | Date
-                                                        | string,
-                                                    )}
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              )}
                                               {!isChatActive(status) && (
                                                 <Button
                                                   variant="ghost"
@@ -687,31 +566,24 @@ function MessageItemComponent({
                                     }
 
                                     return (
-                                      <div className="group/msg flex flex-col items-end gap-1.5">
+                                      <div className="flex flex-col items-end gap-1.5">
                                         {messageDatasources &&
                                           messageDatasources.length > 0 && (
-                                            <div
-                                              className={cn(
-                                                'flex min-h-6 w-full max-w-[80%] min-w-0 justify-end overflow-x-hidden transition-opacity',
-                                                isLastUserMessage
-                                                  ? 'opacity-100'
-                                                  : 'opacity-0 group-hover/msg:opacity-100',
-                                              )}
-                                            >
+                                            <div className="flex w-full max-w-[80%] min-w-0 justify-end overflow-x-hidden">
                                               <DatasourceBadges
                                                 datasources={messageDatasources}
                                                 pluginLogoMap={pluginLogoMap}
                                               />
                                             </div>
                                           )}
-                                        <div className="w-full max-w-full min-w-0">
+                                        <div className="group/msg w-full max-w-full min-w-0">
                                           <Message
                                             key={`${message.id}-${i}`}
                                             from={message.role}
                                             className="w-full max-w-full min-w-0"
                                           >
                                             <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                                              <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
+                                              <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
                                                 {part.text}
                                               </div>
                                             </MessageContent>
@@ -720,41 +592,7 @@ function MessageItemComponent({
                                           {normalizeUIRole(message.role) ===
                                             'user' &&
                                             isLastTextPart && (
-                                              <div className="mt-1 mr-2 flex items-center justify-end gap-1">
-                                                {(
-                                                  message.metadata as
-                                                    | Record<string, unknown>
-                                                    | undefined
-                                                )?.createdAt != null && (
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span className="text-muted-foreground text-xs opacity-0 transition-opacity group-hover/msg:opacity-100">
-                                                        {formatMessageTime(
-                                                          (
-                                                            message.metadata as Record<
-                                                              string,
-                                                              unknown
-                                                            >
-                                                          ).createdAt as
-                                                            | Date
-                                                            | string,
-                                                        )}
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                      {formatMessageDateTime(
-                                                        (
-                                                          message.metadata as Record<
-                                                            string,
-                                                            unknown
-                                                          >
-                                                        ).createdAt as
-                                                          | Date
-                                                          | string,
-                                                      )}
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                )}
+                                              <div className="mt-1 flex items-center justify-end gap-1">
                                                 {!isChatActive(status) && (
                                                   <Button
                                                     variant="ghost"
@@ -823,7 +661,7 @@ function MessageItemComponent({
                                         className="w-full max-w-full min-w-0"
                                       >
                                         <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                                          <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
+                                          <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
                                             <StreamdownWithSuggestions
                                               sendMessage={sendMessage}
                                               messages={messages}
@@ -855,7 +693,7 @@ function MessageItemComponent({
                                         className="w-full max-w-full min-w-0"
                                       >
                                         <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                                          <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
+                                          <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
                                             <StreamdownWithSuggestions
                                               sendMessage={sendMessage}
                                               messages={messages}
@@ -1163,39 +1001,6 @@ function MessageItemComponent({
                     if (part.type.startsWith('tool-')) {
                       const toolPart = part as ToolUIPart;
                       const toolPartKey = `${message.id}-${i}`;
-                      const messageDatasourcesForTool = getMessageDatasources(
-                        message,
-                        datasources,
-                        messages,
-                        selectedDatasources,
-                      );
-
-                      const toolPartProps = {
-                        part: toolPart,
-                        messageId: message.id,
-                        index: i,
-                        executionTimeMs: getExecutionTimeMs(toolPart, message),
-                        open:
-                          openToolPartKeys !== undefined &&
-                          openToolPartKeys !== null
-                            ? openToolPartKeys.has(toolPartKey)
-                            : undefined,
-                        onOpenChange: onToolPartOpenChange
-                          ? (open: boolean) =>
-                              onToolPartOpenChange(toolPartKey, open)
-                          : undefined,
-                        defaultOpenWhenUncontrolled:
-                          i === message.parts.length - 1,
-                        onPasteToNotebook,
-                        notebookContext,
-                        onToolApproval,
-                        pluginLogoMap,
-                        selectedDatasourceItems,
-                        messages,
-                        datasources: messageDatasourcesForTool,
-                        onDatasourceNameClick,
-                        onTableNameClick,
-                      };
 
                       return (
                         <div
@@ -1205,7 +1010,37 @@ function MessageItemComponent({
                           <ToolWithTaskDelimiter
                             parts={message.parts}
                             partIndex={i}
-                            {...toolPartProps}
+                            part={toolPart}
+                            messageId={message.id}
+                            index={i}
+                            executionTimeMs={getExecutionTimeMs(
+                              toolPart,
+                              message,
+                            )}
+                            open={
+                              openToolPartKeys !== undefined &&
+                              openToolPartKeys !== null
+                                ? openToolPartKeys.has(toolPartKey)
+                                : undefined
+                            }
+                            onOpenChange={
+                              onToolPartOpenChange
+                                ? (open) =>
+                                    onToolPartOpenChange(toolPartKey, open)
+                                : undefined
+                            }
+                            defaultOpenWhenUncontrolled={
+                              i === message.parts.length - 1
+                            }
+                            onPasteToNotebook={onPasteToNotebook}
+                            notebookContext={notebookContext}
+                            onToolApproval={onToolApproval}
+                            pluginLogoMap={pluginLogoMap}
+                            selectedDatasourceItems={selectedDatasourceItems}
+                            messages={messages}
+                            datasources={datasources}
+                            onDatasourceNameClick={onDatasourceNameClick}
+                            onTableNameClick={onTableNameClick}
                           />
                         </div>
                       );
@@ -1242,10 +1077,6 @@ export const MessageItem = memo(MessageItemComponent, (prev, next) => {
     return false;
   }
 
-  if (prev.editDatasources !== next.editDatasources) {
-    return false;
-  }
-
   if (prev.copiedMessagePartId !== next.copiedMessagePartId) {
     return false;
   }
@@ -1279,10 +1110,7 @@ export const MessageItem = memo(MessageItemComponent, (prev, next) => {
     return false;
   }
 
-  if (prev.onDatasourceNameClick !== next.onDatasourceNameClick) return true;
-  if (prev.onTableNameClick !== next.onTableNameClick) return true;
-
-  if (prev.getDatasourceTooltip !== next.getDatasourceTooltip) {
+  if (prev.editDatasources !== next.editDatasources) {
     return false;
   }
 

@@ -18,7 +18,12 @@ describe('TaskDelimiter', () => {
         taskIndex={1}
         taskTitle="Fetch schema"
         todos={[
-          { id: 'task-1', content: 'Fetch schema', status: 'in_progress' },
+          {
+            id: 'task-1',
+            content: 'Fetch schema',
+            status: 'in_progress',
+            priority: 'HIGH',
+          },
         ]}
       />,
     );
@@ -36,7 +41,12 @@ describe('TaskDelimiter', () => {
         taskIndex={1}
         taskTitle="Fetch schema"
         todos={[
-          { id: 'task-1', content: 'Fetch schema', status: 'in_progress' },
+          {
+            id: 'task-1',
+            content: 'Fetch schema',
+            status: 'in_progress',
+            priority: 'HIGH',
+          },
         ]}
         messageId="msg-123"
       />,
@@ -63,7 +73,12 @@ describe('TaskDelimiter', () => {
         taskIndex={1}
         taskTitle="Fetch schema"
         todos={[
-          { id: 'task-1', content: 'Fetch schema', status: 'in_progress' },
+          {
+            id: 'task-1',
+            content: 'Fetch schema',
+            status: 'in_progress',
+            priority: 'HIGH',
+          },
         ]}
         messageId="msg-123"
       />,

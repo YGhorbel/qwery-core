@@ -48,7 +48,7 @@ export default function Schema(props: Route.ComponentProps) {
   if (isLoadingMetadata) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <p className="text-muted-foreground text-sm">Loading schema...</p>
+        <div className="bg-muted h-6 w-24 animate-pulse rounded" />
       </div>
     );
   }

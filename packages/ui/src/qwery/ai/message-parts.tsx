@@ -894,6 +894,22 @@ export function ToolPart({
   } else {
     toolName = getUserFriendlyToolName(part.type);
   }
+
+  if (part.type === 'tool-getSchema') {
+    const inputDetailLevel = (
+      (part.input as { detailLevel?: 'simple' | 'full' } | null) ?? null
+    )?.detailLevel;
+    const outputDetailLevel = (
+      (part.output as { detailLevel?: 'simple' | 'full' } | null) ?? null
+    )?.detailLevel;
+    const detailLevel = inputDetailLevel ?? outputDetailLevel;
+
+    if (detailLevel === 'simple') {
+      toolName = `${toolName} (simple)`;
+    } else if (detailLevel === 'full') {
+      toolName = `${toolName} (full)`;
+    }
+  }
   // Render specialized visualizers based on tool type
   const renderToolOutput = () => {
     const isMinimal = variant === 'minimal';
@@ -1826,7 +1842,7 @@ export function ToolPart({
                           'border-destructive/30 bg-destructive/[0.02]',
                       )}
                     >
-                      <CollapsibleTrigger className="group/item hover:bg-muted/40 flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+                      <CollapsibleTrigger className="group/item hover:bg-muted/40 flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left">
                         <div className="flex min-w-0 flex-1 items-center gap-3">
                           <div className="flex-shrink-0">
                             {isExecuting ? (
@@ -1985,25 +2001,10 @@ export function ToolPart({
 
     // Handle getSchema - streaming/loading, then schema when output
     if (part.type === 'tool-getSchema') {
-      const input = part.input as { detailLevel?: 'simple' | 'full' } | null;
       if (!part.output && part.input != null) {
         const isInputStreaming = part.state === 'input-streaming';
         return (
           <div className="flex w-full flex-col gap-3">
-            {input?.detailLevel && (
-              <div className="bg-muted/50 rounded-md p-3">
-                <p className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
-                  Detail Level
-                </p>
-                <p className="text-sm">{input.detailLevel}</p>
-                {isInputStreaming && (
-                  <span
-                    className="text-foreground mt-1 inline-block h-4 w-0.5 shrink-0 animate-pulse rounded-sm bg-current align-middle"
-                    aria-hidden
-                  />
-                )}
-              </div>
-            )}
             {!isInputStreaming && <SchemaSkeleton />}
           </div>
         );
@@ -2026,7 +2027,8 @@ export function ToolPart({
       } | null;
       const hasSchema =
         output?.schema != null ||
-        (output?.detailLevel === 'simple' && output?.datasources != null);
+        (output?.detailLevel === 'simple' &&
+          (output?.datasources?.length ?? 0) > 0);
       if (hasSchema) {
         const schemaDatasources: SchemaVisualizerDatasourceItem[] | undefined =
           messageDatasources?.map((d) => ({
@@ -2035,62 +2037,84 @@ export function ToolPart({
             slug: d.slug,
             datasource_provider: d.datasource_provider,
           }));
-        const schemaData: DatasourceMetadata | SimpleSchema[] =
+        const schemaData: DatasourceMetadata | SimpleSchema[] | null =
           output?.detailLevel === 'simple' && output?.datasources
-            ? output.datasources.flatMap((d) => d.schema)
-            : (output!.schema as DatasourceMetadata);
+            ? output.datasources.flatMap((d) => {
+                const matched = schemaDatasources?.find(
+                  (sd) => sd.id === d.datasourceId,
+                );
+                const raw =
+                  matched?.slug ||
+                  matched?.name ||
+                  d.datasourceName ||
+                  d.datasourceId;
+                const prefix =
+                  String(raw)
+                    .replace(/\s+/g, '_')
+                    .replace(/[^a-zA-Z0-9_-]/g, '') || d.datasourceId;
+                return (d.schema as SimpleSchema[]).map((s) => ({
+                  ...s,
+                  databaseName: `${prefix}__${s.databaseName}`,
+                }));
+              })
+            : (output?.schema ?? null);
 
-        return (
-          <SchemaVisualizer
-            schema={schemaData}
-            variant={variant}
-            datasources={schemaDatasources}
-            schemaErrors={output?.schemaErrors}
-            pluginLogoMap={pluginLogoMap}
-            onDatasourceNameClick={onDatasourceNameClick}
-            onTableNameClick={onTableNameClick}
-          />
-        );
-      } else {
-        // Empty state when no schema data
-        return (
-          <div
+        if (
+          schemaData &&
+          (!Array.isArray(schemaData) || schemaData.length > 0)
+        ) {
+          return (
+            <SchemaVisualizer
+              schema={schemaData}
+              variant={variant}
+              datasources={schemaDatasources}
+              schemaErrors={output?.schemaErrors}
+              pluginLogoMap={pluginLogoMap}
+              onDatasourceNameClick={onDatasourceNameClick}
+              onTableNameClick={onTableNameClick}
+            />
+          );
+        }
+      }
+
+      // Empty state when no schema data
+      return (
+        <div
+          className={cn(
+            'flex flex-col items-center justify-center p-8 text-center',
+            variant === 'minimal' && 'p-4',
+          )}
+        >
+          <Database
             className={cn(
-              'flex flex-col items-center justify-center p-8 text-center',
-              variant === 'minimal' && 'p-4',
+              'text-muted-foreground mb-4 opacity-50',
+              variant === 'minimal' ? 'mb-2 h-8 w-8' : 'h-12 w-12',
+            )}
+          />
+          <h3
+            className={cn(
+              'text-foreground mb-2 font-semibold',
+              variant === 'minimal' ? 'text-xs' : 'text-sm',
             )}
           >
-            <Database
-              className={cn(
-                'text-muted-foreground mb-4 opacity-50',
-                variant === 'minimal' ? 'mb-2 h-8 w-8' : 'h-12 w-12',
-              )}
+            <Trans
+              i18nKey="common:schema.noSchemaDataAvailable"
+              defaults="No schema data available"
             />
-            <h3
-              className={cn(
-                'text-foreground mb-2 font-semibold',
-                variant === 'minimal' ? 'text-xs' : 'text-sm',
-              )}
-            >
-              <Trans
-                i18nKey="common:schema.noSchemaDataAvailable"
-                defaults="No schema data available"
-              />
-            </h3>
-            <p
-              className={cn(
-                'text-muted-foreground',
-                variant === 'minimal' ? 'text-[10px]' : 'text-xs',
-              )}
-            >
-              <Trans
-                i18nKey="common:schema.schemaEmptyOrNotLoaded"
-                defaults="The schema information is empty or could not be loaded."
-              />
-            </p>
-          </div>
-        );
-      }
+          </h3>
+          <p
+            className={cn(
+              'text-muted-foreground',
+              variant === 'minimal' ? 'text-[10px]' : 'text-xs',
+            )}
+          >
+            <Trans
+              i18nKey="common:schema.schemaEmptyOrNotLoaded"
+              defaults="The schema information is empty or could not be loaded."
+            />
+          </p>
+        </div>
+      );
     }
 
     // Handle viewSheet - streaming/loading, then sheet when output

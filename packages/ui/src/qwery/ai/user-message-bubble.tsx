@@ -1,7 +1,5 @@
 'use client';
 
-import { ArrowUpLeft } from 'lucide-react';
-import { Button } from '../../shadcn/button';
 import { cn } from '../../lib/utils';
 import { Message, MessageContent } from '../../ai-elements/message';
 import { scrollToElementBySelector } from './utils/scroll-utils';
@@ -281,24 +279,39 @@ function getPreviewText(
 
   const spotlight = findSuggestionInResponse(cleanedResponse, suggestionText);
 
+  const CONTEXT_CHARS = 60;
+
   if (spotlight) {
     const { before, suggestion, after } = spotlight;
+    const truncBefore =
+      before.length > CONTEXT_CHARS
+        ? `…${before.slice(-CONTEXT_CHARS)}`
+        : before;
+    const truncAfter =
+      after.length > CONTEXT_CHARS
+        ? `${after.slice(0, CONTEXT_CHARS)}…`
+        : after;
 
     const preview = (
       <>
-        {before && <span>{before} </span>}
+        {truncBefore && <span>{truncBefore} </span>}
         <span className="font-bold">{suggestion}</span>
-        {after && <span> {after}</span>}
+        {truncAfter && <span> {truncAfter}</span>}
       </>
     );
 
     return { preview, fullText };
   }
 
+  const truncatedResponse =
+    cleanedResponse.length > CONTEXT_CHARS * 2
+      ? `${cleanedResponse.slice(0, CONTEXT_CHARS * 2)}…`
+      : cleanedResponse;
+
   const preview = (
     <>
       <span className="font-bold">{suggestionText}</span>
-      {cleanedResponse && <span> {cleanedResponse}</span>}
+      {truncatedResponse && <span> {truncatedResponse}</span>}
     </>
   );
 
@@ -513,27 +526,26 @@ export function UserMessageBubble({
           )}
         </div>
       )}
-      {/* Horizontal layout: go to suggestion button - previous response preview - message bubble */}
-      <div className="flex w-full max-w-full min-w-0 items-center gap-1 overflow-x-hidden">
-        {/* Go to suggestion button - on the very left */}
-        {hasSourceSuggestion && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100"
-            onClick={scrollToSourceSuggestion}
-            title="Scroll to original suggestion"
-          >
-            <ArrowUpLeft className="size-4" />
-          </Button>
-        )}
-        {/* Previous response preview - sits next to bubble, full text wraps without truncation */}
+      {/* Horizontal layout: previous response preview - message bubble */}
+      <div className="flex w-full max-w-full min-w-0 items-stretch gap-1 overflow-x-hidden">
+        {/* Previous response preview - height capped to bubble height via stretch */}
         {previewData && (
           <HoverCard open={isHoverCardOpen} onOpenChange={setIsHoverCardOpen}>
             <HoverCardTrigger asChild>
-              <div className="text-muted-foreground hover:text-foreground flex max-w-[65%] min-w-0 shrink-0 cursor-pointer items-center justify-end text-right text-xs leading-relaxed transition-colors">
-                <span className="break-words">{previewData.preview}</span>
-              </div>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground relative flex max-w-[65%] min-w-0 cursor-pointer self-stretch overflow-hidden items-start justify-end border-0 bg-transparent p-0 text-right text-xs leading-relaxed transition-colors [mask-image:linear-gradient(to_bottom,black_60%,transparent_100%)]"
+                onClick={
+                  hasSourceSuggestion ? scrollToSourceSuggestion : undefined
+                }
+                title={
+                  hasSourceSuggestion
+                    ? 'Scroll to original suggestion'
+                    : undefined
+                }
+              >
+                <span className="pr-4 break-words">{previewData.preview}</span>
+              </button>
             </HoverCardTrigger>
             <HoverCardContent
               ref={hoverCardContentRef}
@@ -578,7 +590,7 @@ export function UserMessageBubble({
         {/* Message bubble - right-aligned, sits next to preview */}
         <Message
           from="user"
-          className={cn('flex !w-auto min-w-0 shrink-0', className)}
+          className={cn('flex !w-auto max-w-[80%] min-w-0 shrink-0', className)}
         >
           <MessageContent
             className="overflow-wrap-anywhere max-w-full min-w-0 break-words"
