@@ -25,6 +25,31 @@ export interface NoDatasourceDialogRef {
   open: (text: string) => Promise<boolean>;
 }
 
+const ENABLED_MODELS_STORAGE_KEY = 'qwery-enabled-model-ids';
+
+function loadEnabledModelIds(allModels: { value: string }[]): Set<string> {
+  if (typeof window === 'undefined')
+    return new Set(allModels.map((m) => m.value));
+  try {
+    const raw = localStorage.getItem(ENABLED_MODELS_STORAGE_KEY);
+    if (!raw) return new Set(allModels.map((m) => m.value));
+    const ids = JSON.parse(raw) as string[];
+    const valid = new Set(allModels.map((m) => m.value));
+    return new Set(ids.filter((id) => valid.has(id)));
+  } catch {
+    return new Set(allModels.map((m) => m.value));
+  }
+}
+
+function saveEnabledModelIds(ids: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ENABLED_MODELS_STORAGE_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* ignore */
+  }
+}
+
 const NoDatasourceDialog = forwardRef<NoDatasourceDialogRef>(
   function NoDatasourceDialog(_, ref) {
     const [open, setOpen] = useState(false);
@@ -105,7 +130,14 @@ import { useAgentStatus, formatRelativeTime } from '@qwery/ui/ai';
 import type { FeedbackPayload } from '@qwery/ui/ai';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { createDatasourceViewPath } from '~/config/project.navigation.config';
+import {
+  createDatasourceViewPath,
+  createDatasourceTableViewPath,
+} from '~/config/project.navigation.config';
+import {
+  openDatasourceInNewTab,
+  openTableInNewTab,
+} from '~/lib/utils/datasource-navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { getConversationsKey } from '~/lib/queries/use-get-conversations';
 import { getConversationKey } from '~/lib/mutations/use-conversation';
@@ -309,6 +341,27 @@ export const AgentUIWrapper = forwardRef<
       }
     | undefined
   >(undefined);
+
+  const supportedModels = useMemo(
+    () => SUPPORTED_MODELS as { name: string; value: string }[],
+    [],
+  );
+  const [enabledModelIds, setEnabledModelIds] = useState<Set<string>>(() =>
+    loadEnabledModelIds(supportedModels),
+  );
+  const enabledModels = useMemo(
+    () => supportedModels.filter((m) => enabledModelIds.has(m.value)),
+    [supportedModels, enabledModelIds],
+  );
+
+  const handleModelsChange = useCallback(
+    (next: { name: string; value: string }[]) => {
+      const ids = new Set(next.map((m) => m.value));
+      setEnabledModelIds(ids);
+      saveEnabledModelIds(ids);
+    },
+    [],
+  );
 
   // Track if we've already initialized datasource from cell to prevent overwriting user selections
   const initializedCellDatasourceRef = useRef<string | null>(null);
@@ -796,14 +849,32 @@ export const AgentUIWrapper = forwardRef<
   );
 
   const _handleDatasourceNameClick = useCallback(
-    (idOrSlug: string, _name: string) => {
-      const ds =
-        datasourceItems.find((d) => d.id === idOrSlug) ??
-        datasourceItems.find((d) => d.slug === idOrSlug);
-      if (ds?.slug) {
-        const path = createDatasourceViewPath(ds.slug);
-        window.open(path, '_blank', 'noopener,noreferrer');
-      }
+    (idOrSlug: string, name: string) => {
+      openDatasourceInNewTab(
+        datasourceItems,
+        idOrSlug,
+        name,
+        createDatasourceViewPath,
+      );
+    },
+    [datasourceItems],
+  );
+
+  const _handleTableNameClick = useCallback(
+    (
+      datasourceIdOrSlug: string,
+      datasourceName: string,
+      schema: string,
+      tableName: string,
+    ) => {
+      openTableInNewTab(
+        datasourceItems,
+        datasourceIdOrSlug,
+        datasourceName,
+        schema,
+        tableName,
+        createDatasourceTableViewPath,
+      );
     },
     [datasourceItems],
   );
@@ -821,7 +892,9 @@ export const AgentUIWrapper = forwardRef<
       <QweryAgentUI
         transport={transport}
         initialMessages={convertedInitialMessages}
-        models={SUPPORTED_MODELS as { name: string; value: string }[]}
+        models={enabledModels}
+        allModels={supportedModels}
+        onModelsChange={handleModelsChange}
         usage={convertUsage(usage)}
         emitFinish={handleEmitFinish}
         datasources={datasourceItems}
@@ -837,6 +910,9 @@ export const AgentUIWrapper = forwardRef<
         isLoading={isLoading}
         conversationSlug={conversationSlug}
         conversationTitle={conversationTitle ?? conversation?.title}
+        onDatasourceNameClick={_handleDatasourceNameClick}
+        onTableNameClick={_handleTableNameClick}
+        getDatasourceTooltip={_getDatasourceTooltip}
       />
       <NoDatasourceDialog ref={noDatasourceDialogRef} />
     </>

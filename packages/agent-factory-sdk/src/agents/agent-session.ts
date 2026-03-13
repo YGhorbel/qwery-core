@@ -49,6 +49,9 @@ const DEFAULT_AGENT_ID = 'query';
 const OUTPUT_TOKEN_MAX = 32_000;
 const CONTEXT_SAFETY_FACTOR = 0.9;
 
+const WEB_SEARCH_PROMPT_FRAGMENT = `# Web search (webfetch tool)
+When using webfetch for web search: use specific, search-friendly queries (e.g. "OpenAI CEO 2025"); build the search URL with the query in the "q" parameter (e.g. https://www.google.com/search?q=...). Only state information that appears in the fetched content. If the results do not contain the answer, say so clearly instead of guessing or inventing sources.`;
+
 const SSE_HEADERS = {
   'Content-Type': 'text/event-stream',
   'Cache-Control': 'no-cache',
@@ -366,6 +369,10 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       })}\n\n`;
       pendingRealtimeChunks.push(encoder.encode(realtimeStatLine));
     };
+    const lastRunQueryResultRef: {
+      current: { columns: string[]; rows: unknown[] } | null;
+    } = { current: null };
+
     const getContext = (options: {
       toolCallId?: string;
       abortSignal?: AbortSignal;
@@ -379,6 +386,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
         repositories,
         conversationId,
         attachedDatasources: input.datasources,
+        lastRunQueryResult: lastRunQueryResultRef,
       },
       messages: msgs,
       ask: async (req: AskRequest) => {
@@ -429,6 +437,13 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
             .join('\n\n')
         : agentInfo.systemPrompt;
 
+    const baseSystemPrompt = [
+      systemPromptForLlm,
+      tools.webfetch != null ? WEB_SEARCH_PROMPT_FRAGMENT : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
     const metaToolIds = new Set([
       'todowrite',
       'todoread',
@@ -441,8 +456,8 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     );
     const systemPromptWithSuggestions =
       capabilityIds.length > 0
-        ? `${systemPromptForLlm}\n\nSUGGESTIONS - Capabilities: When using {{suggestion: ...}}, only suggest actions you can perform with your tools: ${capabilityIds.join(', ')}. Do not suggest CSV/PDF export, file download, or other actions you cannot perform.`
-        : systemPromptForLlm;
+        ? `${baseSystemPrompt}\n\nSUGGESTIONS - Capabilities: When using {{suggestion: ...}}, only suggest actions you can perform with your tools: ${capabilityIds.join(', ')}. Do not suggest CSV/PDF export, file download, or other actions you cannot perform.`
+        : baseSystemPrompt;
 
     if (!lastWasCompaction && !hasPendingCompactionTask) {
       const encoder = new TextEncoder();

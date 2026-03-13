@@ -380,8 +380,6 @@ describe('SessionCompaction prune', () => {
   it('skips pruning when total prunable tokens are below minimum threshold', async () => {
     await repositories.conversation.create(makeConversation());
     const base = new Date(1000);
-    // User0 (0), Asst0 with small tool output (1), User1 (2)
-    // smallOutput length chosen so estimated tokens stay below PRUNE_MINIMUM.
     const smallOutput = 'x'.repeat(50_000);
     await repositories.message.create(
       makeMessage(
@@ -473,7 +471,6 @@ describe('SessionCompaction helpers', () => {
     const fullTokens = estimateTokens(full);
     expect(truncatedTokens).toBeLessThanOrEqual(maxTokens);
     expect(fullTokens).toBeGreaterThan(maxTokens);
-    // Should not be empty when there is content
     expect(truncated.length).toBeGreaterThan(0);
   });
 
@@ -492,7 +489,7 @@ describe('SessionCompaction helpers', () => {
       },
       model,
     });
-    // usable = context - output = 80, promptCount = 50
+    // usable = context - output = 80, promptCount = input(40) + cache.read(10) = 50
     expect(below).toBe(false);
 
     const above = await isOverflow({
@@ -506,5 +503,49 @@ describe('SessionCompaction helpers', () => {
     });
     // usable = 80, promptCount = 81
     expect(above).toBe(true);
+  });
+});
+
+describe('SessionCompaction isOverflow', () => {
+  it('excludes reasoning and output tokens from overflow count (they are stripped between turns)', async () => {
+    const model = {
+      providerID: 'test',
+      id: 'model',
+      limit: { context: 100_000, output: 20_000 },
+    };
+
+    // usable = 80_000. promptCount = input(40k) + cache.read(20k) = 60k < 80k → no overflow
+    // reasoning(1) and output(20k) are excluded: APIs strip them before the next turn
+    const overflow = await isOverflow({
+      model,
+      tokens: {
+        input: 40_000,
+        output: 20_000,
+        reasoning: 1,
+        cache: { read: 20_000, write: 0 },
+      },
+    });
+
+    expect(overflow).toBe(false);
+  });
+
+  it('does not overflow when total equals usable limit', async () => {
+    const model = {
+      providerID: 'test',
+      id: 'model',
+      limit: { context: 100_000, output: 20_000 },
+    };
+
+    const overflow = await isOverflow({
+      model,
+      tokens: {
+        input: 40_000,
+        output: 20_000,
+        reasoning: 0,
+        cache: { read: 20_000, write: 0 },
+      },
+    });
+
+    expect(overflow).toBe(false);
   });
 });

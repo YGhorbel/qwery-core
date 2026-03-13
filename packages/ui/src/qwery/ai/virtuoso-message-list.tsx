@@ -169,6 +169,9 @@ export const VirtuosoMessageList = forwardRef<
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       messageItemProps.lastAssistantMessage,
+      messageItemProps.model,
+      messageItemProps.setModel,
+      messageItemProps.models,
       messageItemProps.editingMessageId,
       messageItemProps.editText,
       messageItemProps.editDatasources,
@@ -189,6 +192,9 @@ export const VirtuosoMessageList = forwardRef<
       messageItemProps.onSubmitFeedback,
       messageItemProps.openToolPartKeys,
       messageItemProps.onToolPartOpenChange,
+      messageItemProps.onDatasourceNameClick,
+      messageItemProps.onTableNameClick,
+      messageItemProps.getDatasourceTooltip,
     ],
   );
 
@@ -379,7 +385,7 @@ export const VirtuosoMessageList = forwardRef<
                       className="w-full max-w-full min-w-0"
                     >
                       <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                        <div className="overflow-wrap-anywhere inline-flex min-w-0 items-baseline gap-0.5 break-words">
+                        <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
                           <MessageResponse></MessageResponse>
                         </div>
                       </MessageContent>
