@@ -91,8 +91,9 @@ export default defineConfig(({ command }) => ({
     'import.meta.env.VITE_GIT_HASH': JSON.stringify(gitHash),
   },
   resolve: {
-    // Dedupe i18next and react-i18next to ensure single instance across all packages
-    // This is critical for monorepo setups where multiple packages use these libraries
+    alias: {
+      '~': path.resolve(process.cwd()),
+    },
     dedupe: ['i18next', 'react-i18next', 'react', 'react-dom'],
   },
   ssr: {

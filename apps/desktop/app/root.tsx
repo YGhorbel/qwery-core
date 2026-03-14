@@ -267,6 +267,10 @@ function AppContent({
     navigate(1);
   }, [canGoForward, navigate]);
 
+  const handleOpenSettings = useCallback(() => {
+    navigate('/settings');
+  }, [navigate]);
+
   useMenuActions(handleMenuAction);
   const onOpenCommandPalette = useCallback(() => {
     window.dispatchEvent(new CustomEvent('open-command-palette'));
@@ -283,6 +287,7 @@ function AppContent({
           onMenuAction={handleMenuAction}
           onBack={handleBack}
           onForward={handleForward}
+          onOpenSettings={handleOpenSettings}
           canGoBack={canGoBack}
           canGoForward={canGoForward}
           canZoomIn={canZoomIn}

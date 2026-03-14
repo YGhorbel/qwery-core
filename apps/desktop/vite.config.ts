@@ -81,6 +81,7 @@ export default defineConfig(async () => ({
   },
   resolve: {
     alias: {
+      '~': path.resolve(process.cwd(), '../web'),
       '@qwery/shared/workspace': path.resolve(
         process.cwd(),
         '../..',
@@ -149,13 +150,14 @@ export default defineConfig(async () => ({
       "fsevents",
     ],
     include: [
-      "react-hook-form",
-      "zod",
-      "@radix-ui/react-context-menu",
-      "recharts",
-      "@ai-sdk/react",
-      "@xyflow/react",
-      "@radix-ui/react-avatar",
+      'react-hook-form',
+      'zod',
+      '@radix-ui/react-context-menu',
+      'recharts',
+      '@ai-sdk/react',
+      '@xyflow/react',
+      '@radix-ui/react-avatar',
+      '@tauri-apps/api/core',
     ],
   },
   build: {

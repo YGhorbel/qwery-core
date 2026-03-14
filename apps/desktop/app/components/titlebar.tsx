@@ -11,6 +11,7 @@ import {
   Square,
   Zap,
   Code2,
+  Settings2,
 } from 'lucide-react';
 import * as Menubar from '@radix-ui/react-menubar';
 import { cn } from '@qwery/ui/utils';
@@ -30,6 +31,7 @@ type TitlebarProps = {
   onMenuAction?: (action: MenuActionId) => void;
   onBack?: () => void;
   onForward?: () => void;
+  onOpenSettings?: () => void;
   canGoBack?: boolean;
   canGoForward?: boolean;
   canZoomIn?: boolean;
@@ -40,6 +42,7 @@ export function Titlebar({
   onMenuAction,
   onBack,
   onForward,
+  onOpenSettings,
   canGoBack = false,
   canGoForward = false,
   canZoomIn = true,
@@ -183,6 +186,14 @@ export function Titlebar({
 
   const otherOptions = (
     <div className="flex items-center gap-1">
+      <button
+        onClick={onOpenSettings}
+        className="hover:bg-muted flex h-7 w-7 items-center justify-center rounded transition-colors"
+        aria-label="Settings"
+        type="button"
+      >
+        <Settings2 className="h-5 w-5" />
+      </button>
       <button
         onClick={() =>
           handleWorkspaceModeChange(

@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri_plugin_shell::process::CommandEvent;
+use keyring::Entry;
 
 fn target_triple() -> &'static str {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -17,6 +20,90 @@ fn target_triple() -> &'static str {
     "aarch64-apple-darwin" // fallback
 }
 use tauri_plugin_shell::ShellExt;
+
+const SERVICE_NAME: &str = "run.qwery.desktop";
+
+fn keyring_entry(key: &str) -> Result<Entry, String> {
+    Entry::new(SERVICE_NAME, key).map_err(|e| format!("keyring init error: {e}"))
+}
+
+#[tauri::command]
+fn save_api_key(key: String, value: String) -> Result<(), String> {
+    let entry = keyring_entry(&key)?;
+    entry
+        .set_password(&value)
+        .map_err(|e| format!("keyring write error: {e}"))
+}
+
+#[tauri::command]
+fn get_api_key(key: String) -> Result<Option<String>, String> {
+    let entry = keyring_entry(&key)?;
+    match entry.get_password() {
+        Ok(v) => Ok(Some(v)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(format!("keyring read error: {e}")),
+    }
+}
+
+#[tauri::command]
+fn delete_api_key(key: String) -> Result<(), String> {
+    let entry = keyring_entry(&key)?;
+    entry
+        .set_password("")
+        .map_err(|e| format!("keyring delete error: {e}"))
+}
+
+const MANAGED_KEYS: &[&str] = &[
+    "AZURE_API_KEY",
+    "AZURE_RESOURCE_NAME",
+    "AZURE_OPENAI_DEPLOYMENT",
+    "AZURE_API_VERSION",
+    "AZURE_OPENAI_BASE_URL",
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_BASE_URL",
+    "OPENAI_API_KEY",
+    "AGENT_PROVIDER",
+    "DEFAULT_MODEL",
+];
+
+const CONFIG_KEYS: &[&str] = &[
+    "USE_SCHEMA_EMBEDDING",
+    "USE_RETRIEVAL",
+    "USE_OPTIMIZED_PROMPT",
+    "QWERY_TELEMETRY_ENABLED",
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "QWERY_EXPORT_APP_TELEMETRY",
+    "QWERY_EXPORT_METRICS",
+    "QWERY_TELEMETRY_DEBUG",
+];
+
+fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("app_config_dir: {e}"))?;
+    Ok(dir.join("config.json"))
+}
+
+#[tauri::command]
+fn get_app_config(app: tauri::AppHandle) -> Result<HashMap<String, String>, String> {
+    let path = config_path(&app)?;
+    if !path.exists() {
+        return Ok(HashMap::new());
+    }
+    let data = fs::read_to_string(&path).map_err(|e| format!("read config: {e}"))?;
+    Ok(serde_json::from_str(&data).unwrap_or_else(|_| HashMap::new()))
+}
+
+#[tauri::command]
+fn set_app_config(app: tauri::AppHandle, config: HashMap<String, String>) -> Result<(), String> {
+    let path = config_path(&app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create config dir: {e}"))?;
+    }
+    let data = serde_json::to_string_pretty(&config).map_err(|e| format!("serialize config: {e}"))?;
+    fs::write(&path, data).map_err(|e| format!("write config: {e}"))
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -57,16 +144,46 @@ pub fn run() {
                 .join(".qwery")
                 .join("storage");
 
-            // Load .env from app root so API server gets AZURE_* etc. (Tauri may not inherit from dotenv-cli)
-            let env_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(".env");
-            let _ = dotenvy::from_path(env_path);
+            #[cfg(debug_assertions)]
+            {
+                let env_path =
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(".env");
+                let _ = dotenvy::from_path(env_path);
+            }
 
-            let (mut rx, _child) = app
+            let mut cmd = app
                 .shell()
                 .sidecar("bun")
                 .expect("failed to create bun command")
+                .envs(std::env::vars_os());
+
+            for key in MANAGED_KEYS {
+                if let Ok(entry) = keyring_entry(key) {
+                    if let Ok(value) = entry.get_password() {
+                        if !value.is_empty() {
+                            cmd = cmd.env(key, value);
+                        }
+                    }
+                }
+            }
+
+            if let Ok(dir) = app.path().app_config_dir() {
+                let config_path = dir.join("config.json");
+                if config_path.exists() {
+                    if let Ok(data) = fs::read_to_string(&config_path) {
+                        if let Ok(config) = serde_json::from_str::<HashMap<String, String>>(&data) {
+                            for key in CONFIG_KEYS {
+                                if let Some(value) = config.get(*key) {
+                                    cmd = cmd.env(key, value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let (mut rx, _child) = cmd
                 .args([api_server_path.to_str().expect("api-server path")])
-                .envs(std::env::vars_os())
                 .env("QWERY_STORAGE_DIR", storage_dir.to_str().expect("storage path"))
                 .env(
                     "QWERY_EXTENSIONS_PATH",
@@ -131,6 +248,13 @@ pub fn run() {
 
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            save_api_key,
+            get_api_key,
+            delete_api_key,
+            get_app_config,
+            set_app_config
+        ])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())

@@ -7,7 +7,8 @@
     ".": {
       "browser": "./src/index.browser.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./registry.json": "./src/registry.json"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",

@@ -395,6 +395,9 @@ importers:
       '@qwery/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@qwery/extensions-loader':
+        specifier: workspace:*
+        version: link:../../packages/extensions-loader
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../packages/extensions-sdk
@@ -507,6 +510,9 @@ importers:
       '@storybook/react-vite':
         specifier: 'catalog:'
         version: 8.6.14(@storybook/test@8.6.14(storybook@8.6.14(prettier@3.6.2)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(rollup@4.52.5)(storybook@8.6.14(prettier@3.6.2))(typescript@5.9.3)(vite@7.2.1(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
+      '@tauri-apps/api':
+        specifier: ^2
+        version: 2.10.1
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

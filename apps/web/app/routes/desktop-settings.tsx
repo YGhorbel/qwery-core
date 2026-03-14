@@ -1,0 +1,332 @@
+import { useEffect, useState } from 'react';
+
+import { Button } from '@qwery/ui/button';
+import { Input } from '@qwery/ui/input';
+import { Label } from '@qwery/ui/label';
+import { Page, PageBody, PageHeader, PageTitle } from '@qwery/ui/page';
+import { Separator } from '@qwery/ui/separator';
+import { Switch } from '@qwery/ui/switch';
+import { isDesktopApp } from '@qwery/shared/desktop';
+
+type KeyConfig = {
+  id: string;
+  label: string;
+  type?: 'password' | 'text';
+};
+
+/** LLM keys stored in OS keyring (secrets). Add new providers here and add same env var names to MANAGED_KEYS in apps/desktop/src-tauri/src/lib.rs */
+const KEY_GROUPS: { title: string; keys: KeyConfig[] }[] = [
+  {
+    title: 'Azure OpenAI',
+    keys: [
+      { id: 'AZURE_API_KEY', label: 'API Key', type: 'password' },
+      { id: 'AZURE_RESOURCE_NAME', label: 'Resource Name' },
+      { id: 'AZURE_OPENAI_DEPLOYMENT', label: 'Deployment' },
+      { id: 'AZURE_API_VERSION', label: 'API Version' },
+      { id: 'AZURE_OPENAI_BASE_URL', label: 'Base URL' },
+    ],
+  },
+  {
+    title: 'Anthropic',
+    keys: [
+      { id: 'ANTHROPIC_API_KEY', label: 'API Key', type: 'password' },
+      { id: 'ANTHROPIC_BASE_URL', label: 'Base URL' },
+    ],
+  },
+  {
+    title: 'OpenAI Compatible',
+    keys: [{ id: 'OPENAI_API_KEY', label: 'API Key', type: 'password' }],
+  },
+  {
+    title: 'Defaults',
+    keys: [
+      { id: 'AGENT_PROVIDER', label: 'Provider' },
+      { id: 'DEFAULT_MODEL', label: 'Default Model' },
+    ],
+  },
+];
+
+const FEATURE_FLAG_KEYS: { id: string; label: string }[] = [
+  { id: 'USE_SCHEMA_EMBEDDING', label: 'Use schema embedding' },
+  { id: 'USE_RETRIEVAL', label: 'Use retrieval' },
+  { id: 'USE_OPTIMIZED_PROMPT', label: 'Use optimized prompt' },
+];
+
+const TELEMETRY_KEYS: { id: string; label: string; type: 'toggle' | 'text' }[] =
+  [
+    {
+      id: 'QWERY_TELEMETRY_ENABLED',
+      label: 'Telemetry enabled',
+      type: 'toggle',
+    },
+    { id: 'OTEL_EXPORTER_OTLP_ENDPOINT', label: 'OTLP endpoint', type: 'text' },
+    {
+      id: 'QWERY_EXPORT_APP_TELEMETRY',
+      label: 'Export app telemetry',
+      type: 'toggle',
+    },
+    { id: 'QWERY_EXPORT_METRICS', label: 'Export metrics', type: 'toggle' },
+    { id: 'QWERY_TELEMETRY_DEBUG', label: 'Telemetry debug', type: 'toggle' },
+  ];
+
+const CONFIG_KEYS_ORDER = [
+  ...FEATURE_FLAG_KEYS.map((k) => k.id),
+  ...TELEMETRY_KEYS.map((k) => k.id),
+];
+
+type KeyValues = Record<string, string>;
+type ConfigValues = Record<string, string>;
+
+export default function DesktopSettingsRoute() {
+  const [values, setValues] = useState<KeyValues>({});
+  const [config, setConfig] = useState<ConfigValues>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!isDesktopApp()) {
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    async function load() {
+      try {
+        const core = await import('@tauri-apps/api/core');
+        const next: KeyValues = {};
+        for (const group of KEY_GROUPS) {
+          for (const key of group.keys) {
+            try {
+              const existing = (await core.invoke<string | null>(
+                'get_api_key',
+                {
+                  key: key.id,
+                },
+              )) as string | null;
+              if (existing) {
+                next[key.id] = existing;
+              }
+            } catch {
+              // ignore per-key errors
+            }
+          }
+        }
+        const configResult = await core.invoke('get_app_config');
+        const configNext: ConfigValues = {};
+        if (configResult && typeof configResult === 'object') {
+          for (const k of CONFIG_KEYS_ORDER) {
+            if (configResult[k] !== undefined) {
+              configNext[k] = configResult[k];
+            }
+          }
+        }
+        if (mounted) {
+          setValues(next);
+          setConfig(configNext);
+        }
+      } catch (e) {
+        if (mounted) {
+          setError(e instanceof Error ? e.message : 'Failed to load settings.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleChange = (id: string, value: string) => {
+    setValues((prev) => ({ ...prev, [id]: value }));
+    setSaved(false);
+    setError(null);
+  };
+
+  const handleConfigChange = (id: string, value: string) => {
+    setConfig((prev) => ({ ...prev, [id]: value }));
+    setSaved(false);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    if (!isDesktopApp()) return;
+
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+
+    try {
+      const core = await import('@tauri-apps/api/core');
+
+      for (const group of KEY_GROUPS) {
+        for (const key of group.keys) {
+          const value = values[key.id] ?? '';
+          if (!value) {
+            await core.invoke('delete_api_key', { key: key.id });
+          } else {
+            await core.invoke('save_api_key', { key: key.id, value });
+          }
+        }
+      }
+
+      const configToSave: ConfigValues = {};
+      for (const k of CONFIG_KEYS_ORDER) {
+        if (config[k] !== undefined) {
+          configToSave[k] = config[k];
+        }
+      }
+      await core.invoke('set_app_config', { config: configToSave });
+
+      setSaved(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Page>
+      <PageHeader>
+        <PageTitle>Desktop settings</PageTitle>
+      </PageHeader>
+      <PageBody className="h-full min-h-0 overflow-auto">
+        <div className="max-w-3xl space-y-6">
+          {!isDesktopApp() ? (
+            <p className="text-muted-foreground text-sm">
+              This page is only available in the desktop app.
+            </p>
+          ) : null}
+
+          {loading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : isDesktopApp() ? (
+            <>
+              <div className="space-y-1">
+                <h2 className="text-sm font-medium">LLM / Models</h2>
+                <Separator />
+              </div>
+              {KEY_GROUPS.map((group) => (
+                <div key={group.title} className="space-y-4">
+                  <h3 className="text-muted-foreground text-xs font-medium">
+                    {group.title}
+                  </h3>
+                  <div className="space-y-3">
+                    {group.keys.map((key) => (
+                      <div key={key.id} className="space-y-1">
+                        <Label htmlFor={key.id}>{key.label}</Label>
+                        <Input
+                          id={key.id}
+                          type={key.type ?? 'text'}
+                          value={values[key.id] ?? ''}
+                          onChange={(event) =>
+                            handleChange(key.id, event.target.value)
+                          }
+                          autoComplete="off"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="space-y-1">
+                <h2 className="text-sm font-medium">Feature flags</h2>
+                <Separator />
+              </div>
+              <div className="space-y-3">
+                {FEATURE_FLAG_KEYS.map((key) => (
+                  <div
+                    key={key.id}
+                    className="flex items-center justify-between gap-4"
+                  >
+                    <Label htmlFor={key.id}>{key.label}</Label>
+                    <Switch
+                      id={key.id}
+                      checked={config[key.id] === 'true'}
+                      onCheckedChange={(checked) =>
+                        handleConfigChange(key.id, checked ? 'true' : 'false')
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="text-sm font-medium">Telemetry</h2>
+                <Separator />
+              </div>
+              <div className="space-y-3">
+                {TELEMETRY_KEYS.map((key) =>
+                  key.type === 'text' ? (
+                    <div key={key.id} className="space-y-1">
+                      <Label htmlFor={key.id}>{key.label}</Label>
+                      <Input
+                        id={key.id}
+                        value={config[key.id] ?? ''}
+                        onChange={(e) =>
+                          handleConfigChange(key.id, e.target.value)
+                        }
+                        placeholder="http://localhost:4317"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      key={key.id}
+                      className="flex items-center justify-between gap-4"
+                    >
+                      <Label htmlFor={key.id}>{key.label}</Label>
+                      <Switch
+                        id={key.id}
+                        checked={config[key.id] === 'true'}
+                        onCheckedChange={(checked) =>
+                          handleConfigChange(key.id, checked ? 'true' : 'false')
+                        }
+                      />
+                    </div>
+                  ),
+                )}
+              </div>
+
+              {error && (
+                <p
+                  className="text-destructive text-sm"
+                  data-test="settings-error"
+                >
+                  {error}
+                </p>
+              )}
+              {saved && !error && (
+                <p
+                  className="text-muted-foreground text-sm"
+                  data-test="settings-saved"
+                >
+                  Saved. Please restart the desktop app to apply changes.
+                </p>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  data-test="settings-save"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </PageBody>
+    </Page>
+  );
+}

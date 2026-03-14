@@ -11,6 +11,7 @@ const rootRoutes = [
 
 const appRoutes = layout("../../web/app/routes/layout/layout.tsx", [
   index("../../web/app/routes/index.tsx"),
+  route('settings', "../../web/app/routes/desktop-settings.tsx"),
 ]);
 
 const organisationsLayout = layout("../../web/app/routes/organizations/layout.tsx", [
