@@ -359,7 +359,7 @@ export function DatasourceConnectSheet({
               onClick={confirmExit}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Exit and Discard
+              Discard and Exit
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -2,6 +2,7 @@ import {
   type KeyboardEvent,
   startTransition,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -23,30 +24,11 @@ import { toast } from 'sonner';
 
 import { Datasource, DatasourceKind } from '@qwery/domain/entities';
 import { DatasourceExtension } from '@qwery/extensions-sdk';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
 import { FormRenderer } from '@qwery/ui/form-renderer';
 import { Button } from '@qwery/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@qwery/ui/form';
 import { Input } from '@qwery/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@qwery/ui/select';
 import { Trans } from '@qwery/ui/trans';
 import { cn } from '@qwery/ui/utils';
-import { z } from 'zod';
 
 import pathsConfig from '~/config/paths.config';
 import { createPath } from '~/config/qwery.navigation.config';
@@ -63,338 +45,14 @@ import {
 } from '~/lib/queries/use-get-projects';
 import { DATASOURCES } from '~/lib/loaders/datasource-loader';
 import { getErrorKey } from '~/lib/utils/error-key';
+import {
+  hasPresetFormConfig,
+  normalizeProviderConfig,
+  validateProviderConfigWithZod,
+} from '~/lib/utils/datasource-form-config';
+import { DatasourceS3Fields } from '../_components/datasource-s3-fields';
 
 import type { Route } from './+types/new';
-
-const S3_PROVIDERS = [
-  { value: 'aws', label: 'AWS S3' },
-  { value: 'digitalocean', label: 'DigitalOcean Spaces' },
-  { value: 'minio', label: 'MinIO' },
-  { value: 'other', label: 'Other (S3-compatible)' },
-] as const;
-
-const S3_FORMATS = [
-  { value: 'parquet', label: 'Parquet' },
-  { value: 'json', label: 'JSON' },
-] as const;
-
-const s3FormSchema = z
-  .object({
-    provider: z.enum(['aws', 'digitalocean', 'minio', 'other']),
-    endpoint_url: z.string().optional(),
-    aws_access_key_id: z.string().min(1, 'Required'),
-    aws_secret_access_key: z.string().min(1, 'Required'),
-    aws_session_token: z.string().optional(),
-    region: z.string().min(1, 'Required'),
-    bucket: z.string().min(1, 'Required'),
-    prefix: z.string().optional(),
-    format: z.enum(['parquet', 'json']),
-    includes: z.array(z.string()).optional(),
-    excludes: z.array(z.string()).optional(),
-  })
-  .refine(
-    (data) =>
-      data.provider === 'aws' ||
-      (data.endpoint_url && data.endpoint_url.trim().length > 0) ||
-      (data.provider === 'digitalocean' && data.region?.trim().length > 0),
-    {
-      message:
-        'Endpoint URL required for non-AWS, or set region for DigitalOcean Spaces',
-      path: ['endpoint_url'],
-    },
-  );
-
-type S3FormValues = z.infer<typeof s3FormSchema>;
-
-function S3DatasourceForm({
-  onSubmit,
-  formId,
-  onFormReady,
-  onValidityChange,
-}: {
-  onSubmit: (values: Record<string, unknown>) => void | Promise<void>;
-  formId: string;
-  onFormReady: (values: Record<string, unknown>) => void;
-  onValidityChange: (valid: boolean) => void;
-}) {
-  const defaultValues: S3FormValues = {
-    provider: 'aws',
-    format: 'parquet',
-    prefix: '',
-    region: '',
-    bucket: '',
-    aws_access_key_id: '',
-    aws_secret_access_key: '',
-    aws_session_token: '',
-    endpoint_url: '',
-    includes: [],
-    excludes: [],
-  };
-
-  const form = useForm<S3FormValues>({
-    resolver: zodResolver(s3FormSchema),
-    defaultValues,
-    mode: 'onChange',
-  });
-
-  const watched = useWatch({ control: form.control });
-  const provider = (watched?.provider as string) ?? 'aws';
-  const showEndpoint = provider !== 'aws';
-  const isDigitalOcean = provider === 'digitalocean';
-
-  useEffect(() => {
-    onFormReady((watched ?? form.getValues()) as Record<string, unknown>);
-  }, [watched, onFormReady, form]);
-
-  useEffect(() => {
-    onValidityChange(form.formState.isValid);
-  }, [form.formState.isValid, form.formState.errors, onValidityChange]);
-
-  return (
-    <Form {...form}>
-      <form
-        id={formId}
-        onSubmit={form.handleSubmit((v) =>
-          onSubmit(v as Record<string, unknown>),
-        )}
-        className="space-y-5"
-      >
-        <FormField
-          control={form.control}
-          name="provider"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                Provider
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={typeof field.value === 'string' ? field.value : 'aws'}
-              >
-                <FormControl>
-                  <SelectTrigger className="bg-background/50">
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {S3_PROVIDERS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {showEndpoint && (
-          <FormField
-            control={form.control}
-            name="endpoint_url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                  {isDigitalOcean ? 'Endpoint URL (optional)' : 'Endpoint URL'}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={typeof field.value === 'string' ? field.value : ''}
-                    placeholder={
-                      isDigitalOcean
-                        ? 'https://fra1.digitaloceanspaces.com'
-                        : 'https://nyc3.digitaloceanspaces.com'
-                    }
-                    className="bg-background/50"
-                  />
-                </FormControl>
-                <FormDescription className="text-muted-foreground text-xs">
-                  {isDigitalOcean &&
-                    'Leave empty to derive from region (https://<region>.digitaloceanspaces.com)'}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="bucket"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                  {isDigitalOcean ? 'Space name' : 'Bucket'}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={typeof field.value === 'string' ? field.value : ''}
-                    placeholder={isDigitalOcean ? 'qwery' : 'my-bucket'}
-                    className="bg-background/50"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="region"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                  {isDigitalOcean ? 'Spaces region' : 'Region'}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={typeof field.value === 'string' ? field.value : ''}
-                    placeholder={isDigitalOcean ? 'fra1' : 'us-east-1'}
-                    className="bg-background/50"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="aws_access_key_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                {isDigitalOcean ? 'Spaces Access Key ID' : 'Access Key ID'}
-              </FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  value={typeof field.value === 'string' ? field.value : ''}
-                  type="text"
-                  autoComplete="off"
-                  placeholder="Access key"
-                  className="bg-background/50"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="aws_secret_access_key"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                {isDigitalOcean ? 'Spaces Secret Key' : 'Secret Access Key'}
-              </FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  value={typeof field.value === 'string' ? field.value : ''}
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Secret key"
-                  className="bg-background/50"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="prefix"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                Prefix (optional)
-              </FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  value={typeof field.value === 'string' ? field.value : ''}
-                  placeholder="folder/ or leave empty"
-                  className="bg-background/50"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="format"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                File format
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={
-                  typeof field.value === 'string' ? field.value : 'parquet'
-                }
-              >
-                <FormControl>
-                  <SelectTrigger className="bg-background/50">
-                    <SelectValue placeholder="Parquet or JSON" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {S3_FORMATS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="includes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[13px] font-bold tracking-wider uppercase">
-                Include pattern (optional)
-              </FormLabel>
-              <FormControl>
-                <Input
-                  value={
-                    Array.isArray(field.value)
-                      ? field.value.join(', ')
-                      : typeof field.value === 'string'
-                        ? field.value
-                        : ''
-                  }
-                  onChange={(e) => {
-                    const v = e.target.value.trim();
-                    field.onChange(
-                      v
-                        ? v
-                            .split(',')
-                            .map((s) => s.trim())
-                            .filter(Boolean)
-                        : [],
-                    );
-                  }}
-                  placeholder="**/*.parquet or **/*.json (first used)"
-                  className="bg-background/50"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
-  );
-}
 
 export async function loader({ params }: Route.LoaderArgs) {
   const extension = DATASOURCES.find((ds) => ds.id === params.id);
@@ -501,6 +159,56 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
     }
   };
 
+  const zodValid = useMemo(() => {
+    if (!formValues) return false;
+    if (hasPresetFormConfig(extensionId)) {
+      return validateProviderConfigWithZod(formValues, extensionId).success;
+    }
+    const schema = extensionSchema.data;
+    if (schema) {
+      const parsed = (
+        schema as { safeParse: (v: unknown) => { success: boolean } }
+      ).safeParse(formValues);
+      return parsed.success;
+    }
+    return false;
+  }, [formValues, extensionId, extensionSchema.data]);
+
+  const getValidConfig = (
+    values: Record<string, unknown>,
+  ):
+    | { success: true; config: Record<string, unknown> }
+    | { success: false; error: string } => {
+    if (hasPresetFormConfig(extensionId)) {
+      const result = validateProviderConfigWithZod(values, extensionId);
+      if (result.success) {
+        return {
+          success: true,
+          config: normalizeProviderConfig(result.data, extensionId),
+        };
+      }
+      return { success: false, error: result.error };
+    }
+    const schema = extensionSchema.data;
+    if (schema) {
+      const parsed = (
+        schema as {
+          safeParse: (v: unknown) => {
+            success: boolean;
+            data?: Record<string, unknown>;
+            error?: { issues: Array<{ message?: string }> };
+          };
+        }
+      ).safeParse(values);
+      if (parsed.success && parsed.data) {
+        return { success: true, config: parsed.data };
+      }
+      const msg = parsed.error?.issues?.[0]?.message ?? 'Invalid configuration';
+      return { success: false, error: msg };
+    }
+    return { success: false, error: 'No schema available' };
+  };
+
   if (extension.isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -527,152 +235,6 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
     );
   }
 
-  const provider = extension.data?.id;
-
-  const validateProviderConfig = (
-    config: Record<string, unknown>,
-  ): string | null => {
-    if (!provider) return 'Extension provider not found';
-    if (provider === 'gsheet-csv') {
-      if (!(config.sharedLink || config.url)) {
-        return 'Please provide a Google Sheets shared link';
-      }
-    } else if (provider === 'json-online') {
-      if (!(config.jsonUrl || config.url || config.connectionUrl)) {
-        return 'Please provide a JSON file URL (jsonUrl, url, or connectionUrl)';
-      }
-    } else if (provider === 'parquet-online') {
-      if (!(config.url || config.connectionUrl)) {
-        return 'Please provide a Parquet file URL (url or connectionUrl)';
-      }
-    } else if (provider === 's3') {
-      if (!config.bucket) return 'Please provide an S3 bucket name';
-      if (!config.region) return 'Please provide an S3 region';
-      if (!config.aws_access_key_id || !config.aws_secret_access_key) {
-        return 'Please provide access key ID and secret access key';
-      }
-      if (
-        !config.format ||
-        !['parquet', 'json'].includes(config.format as string)
-      ) {
-        return 'Please select file format (Parquet or JSON)';
-      }
-      const s3Provider = config.provider as string | undefined;
-      if (
-        s3Provider &&
-        s3Provider !== 'aws' &&
-        !config.endpoint_url &&
-        !(s3Provider === 'digitalocean' && config.region)
-      ) {
-        return 'Endpoint URL required for MinIO/Other, or set region for DigitalOcean Spaces';
-      }
-    } else if (
-      provider !== 'duckdb' &&
-      provider !== 'duckdb-wasm' &&
-      provider !== 'pglite'
-    ) {
-      if (!(config.connectionUrl || config.host)) {
-        return 'Please provide either a connection URL or connection details (host is required)';
-      }
-    }
-    return null;
-  };
-
-  const normalizeProviderConfig = (
-    config: Record<string, unknown>,
-  ): Record<string, unknown> => {
-    if (!provider) return config;
-    if (provider === 'gsheet-csv') {
-      return { sharedLink: config.sharedLink || config.url };
-    }
-    if (provider === 'json-online') {
-      return { jsonUrl: config.jsonUrl || config.url || config.connectionUrl };
-    }
-    if (provider === 'parquet-online') {
-      return { url: config.url || config.connectionUrl };
-    }
-    if (provider === 's3') {
-      const normalized: Record<string, unknown> = {
-        provider: config.provider ?? 'aws',
-        aws_access_key_id: config.aws_access_key_id,
-        aws_secret_access_key: config.aws_secret_access_key,
-        region: config.region,
-        endpoint_url: config.endpoint_url,
-        bucket: config.bucket,
-        prefix: config.prefix,
-        format: config.format ?? 'parquet',
-        includes: config.includes,
-        excludes: config.excludes,
-      };
-      Object.keys(normalized).forEach((key) => {
-        const value = normalized[key];
-        if (
-          value === '' ||
-          value === undefined ||
-          (Array.isArray(value) && value.length === 0)
-        ) {
-          delete normalized[key];
-        }
-      });
-      return normalized;
-    }
-    if (
-      provider === 'duckdb' ||
-      provider === 'duckdb-wasm' ||
-      provider === 'pglite'
-    ) {
-      return config.database ? { database: config.database } : {};
-    }
-    if (config.connectionUrl) {
-      return { connectionUrl: config.connectionUrl };
-    }
-    const normalized = { ...config };
-    delete normalized.connectionUrl;
-    Object.keys(normalized).forEach((key) => {
-      if (
-        key !== 'password' &&
-        (normalized[key] === '' || normalized[key] === undefined)
-      ) {
-        delete normalized[key];
-      }
-    });
-    return normalized;
-  };
-
-  const isFormValidForProvider = (values: Record<string, unknown>): boolean => {
-    if (!provider) return false;
-    if (provider === 'gsheet-csv') {
-      return !!(values.sharedLink || values.url);
-    }
-    if (provider === 'json-online') {
-      return !!(values.jsonUrl || values.url || values.connectionUrl);
-    }
-    if (provider === 'parquet-online') {
-      return !!(values.url || values.connectionUrl);
-    }
-    if (provider === 's3') {
-      const hasCreds =
-        values.bucket &&
-        values.region &&
-        values.aws_access_key_id &&
-        values.aws_secret_access_key &&
-        values.format;
-      const providerOk =
-        values.provider === 'aws' ||
-        (values.provider && values.endpoint_url) ||
-        (values.provider === 'digitalocean' && values.region);
-      return !!(hasCreds && providerOk);
-    }
-    if (
-      provider === 'duckdb' ||
-      provider === 'duckdb-wasm' ||
-      provider === 'pglite'
-    ) {
-      return true;
-    }
-    return !!(values.connectionUrl || values.host);
-  };
-
   const handleSubmit = async (values: unknown) => {
     if (!extension?.data) {
       toast.error(<Trans i18nKey="datasources:notFoundError" />);
@@ -698,16 +260,15 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
       return;
     }
 
-    let config = values as Record<string, unknown>;
+    const valuesRecord = values as Record<string, unknown>;
     const userId = workspace.userId;
 
-    const validationError = validateProviderConfig(config);
-    if (validationError) {
-      toast.error(validationError);
+    const validated = getValidConfig(valuesRecord);
+    if (!validated.success) {
+      toast.error(validated.error);
       return;
     }
-
-    config = normalizeProviderConfig(config);
+    const config = validated.config;
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -739,13 +300,12 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
       return;
     }
 
-    const validationError = validateProviderConfig(formValues);
-    if (validationError) {
-      toast.error(validationError);
+    const validated = getValidConfig(formValues);
+    if (!validated.success) {
+      toast.error(validated.error);
       return;
     }
-
-    const normalizedConfig = normalizeProviderConfig(formValues);
+    const normalizedConfig = validated.config;
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -772,12 +332,9 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
     testConnectionMutation.mutate(testDatasource as Datasource);
   };
 
-  const canSubmit =
-    provider === 'duckdb' || provider === 'duckdb-wasm' || provider === 'pglite'
-      ? true
-      : isFormValid && formValues && isFormValidForProvider(formValues);
+  const canSubmit = isFormValid && formValues && zodValid;
   const isTestConnectionDisabled =
-    isMutationPending || !formValues || !isFormValidForProvider(formValues);
+    isMutationPending || !formValues || !zodValid;
   const isSubmitDisabled = isMutationPending || !canSubmit;
 
   return (
@@ -880,11 +437,11 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
 
             <div className="bg-background p-5">
               {extensionId === 's3' ? (
-                <S3DatasourceForm
-                  onSubmit={handleSubmit}
+                <DatasourceS3Fields
                   formId="datasource-form"
-                  onFormReady={setFormValues}
+                  onFormReady={(v) => setFormValues(v)}
                   onValidityChange={setIsFormValid}
+                  onSubmit={handleSubmit}
                 />
               ) : extensionSchema.data ? (
                 <FormRenderer

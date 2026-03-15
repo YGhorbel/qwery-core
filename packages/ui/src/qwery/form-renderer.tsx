@@ -129,6 +129,7 @@ export function FormRenderer<T extends z.ZodTypeAny>({
       currentRootSchema as Parameters<typeof zodResolver>[0],
     ),
     defaultValues: mergedDefaults as Record<string, unknown>,
+    mode: 'onTouched',
   });
 
   // form.watch() required for onFormReady; incompatible with React Compiler memoization
@@ -210,6 +211,12 @@ export function FormRenderer<T extends z.ZodTypeAny>({
               ? 'url'
               : 'text';
         const isLongText = (checks.max ?? 0) > 200;
+        const isConnectionStringField =
+          path === 'connectionUrl' ||
+          path === 'connectionString' ||
+          path.endsWith('.connectionUrl') ||
+          path.endsWith('.connectionString');
+        const useTextarea = isLongText || isConnectionStringField;
         return (
           <FormField
             key={path}
@@ -228,11 +235,12 @@ export function FormRenderer<T extends z.ZodTypeAny>({
                 <FormItem>
                   <FormLabel>{label}</FormLabel>
                   <FormControl>
-                    {isLongText ? (
+                    {useTextarea ? (
                       <Textarea
                         {...field}
                         placeholder={displayPlaceholder}
                         rows={4}
+                        className="min-h-[140px] resize-none font-mono text-sm"
                       />
                     ) : isSecret && isProtected ? (
                       <div className="relative flex items-center gap-2">

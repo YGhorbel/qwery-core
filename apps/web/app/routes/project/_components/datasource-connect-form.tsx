@@ -40,13 +40,23 @@ import {
   getUrlForValidation,
   validateDatasourceUrl,
 } from '~/lib/utils/datasource-utils';
+import {
+  hasPresetFormConfig,
+  normalizeProviderConfig,
+  validateProviderConfigWithZod,
+  getDocsUrl,
+} from '~/lib/utils/datasource-form-config';
 import { resolveDatasourceDriver } from '~/lib/utils/datasource-driver';
 import { DatasourceDocsLink } from './datasource-docs-link';
+import { DatasourceConnectionFields } from './datasource-connection-fields';
+import { DatasourceS3Fields } from './datasource-s3-fields';
 import {
   ERROR_KEYS,
   getErrorKey,
   getFirstZodValidationMessage,
 } from '~/lib/utils/error-key';
+import { ZodErrorVisualizer } from '@qwery/ui/qwery/datasource';
+import { ZodError } from 'zod';
 
 export interface DatasourceConnectFormProps {
   extensionId: string;
@@ -99,6 +109,7 @@ export function DatasourceConnectForm({
   );
   const [schemaValid, setSchemaValid] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
+  const [validationError, setValidationError] = useState<ZodError | null>(null);
 
   const urlValidation = useMemo(() => {
     if (
@@ -137,8 +148,10 @@ export function DatasourceConnectForm({
   const projectRepository = repositories.project;
   const extension = useGetExtension(extensionId);
   const extensionSchema = useExtensionSchema(extensionId);
+  const usePresetForm = hasPresetFormConfig(extensionId);
+  const docsUrl = extension.data?.docsUrl ?? getDocsUrl(extensionId, undefined);
 
-  /** Fallback when extension has no schema (e.g. 404 on schema.js). FormRenderer always used. */
+  /** Fallback when extension has no schema (e.g. 404 on schema.js). FormRenderer only when !usePresetForm. */
   const fallbackSchema = useMemo(
     () =>
       zLib
@@ -252,14 +265,38 @@ export function DatasourceConnectForm({
       toast.error(<Trans i18nKey="datasources:formNotReady" />);
       return;
     }
-    const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
-    if (!parsed.success) {
-      const msg =
-        getFirstZodValidationMessage(parsed.error) || 'Invalid configuration';
-      toast.error(msg);
-      return;
+
+    let validData: Record<string, unknown>;
+    if (usePresetForm) {
+      const zodResult = validateProviderConfigWithZod(
+        formValues,
+        extensionId,
+        undefined,
+      );
+      if (!zodResult.success) {
+        setValidationError(zodResult.zodError ?? null);
+        toast.error(zodResult.error);
+        return;
+      }
+      setValidationError(null);
+      validData = normalizeProviderConfig(
+        zodResult.data,
+        extensionId,
+        undefined,
+      );
+    } else {
+      const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
+      if (!parsed.success) {
+        setValidationError(parsed.error);
+        const msg =
+          getFirstZodValidationMessage(parsed.error) || 'Invalid configuration';
+        toast.error(msg);
+        return;
+      }
+      setValidationError(null);
+      validData = parsed.data as Record<string, unknown>;
     }
-    const validData = parsed.data as Record<string, unknown>;
+
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
       toast.error(<Trans i18nKey="datasources:notFoundError" />);
@@ -293,6 +330,8 @@ export function DatasourceConnectForm({
     datasourceName,
     testConnectionMutation,
     onTestConnectionLoadingChange,
+    usePresetForm,
+    extensionId,
   ]);
 
   const handleConnect = useCallback(async () => {
@@ -328,15 +367,38 @@ export function DatasourceConnectForm({
       return;
     }
 
-    const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
-    if (!parsed.success) {
-      const msg =
-        getFirstZodValidationMessage(parsed.error) || 'Invalid configuration';
-      toast.error(msg);
-      setIsConnecting(false);
-      return;
+    let validData: Record<string, unknown>;
+    if (usePresetForm) {
+      const zodResult = validateProviderConfigWithZod(
+        formValues,
+        extensionId,
+        undefined,
+      );
+      if (!zodResult.success) {
+        setValidationError(zodResult.zodError ?? null);
+        toast.error(zodResult.error);
+        setIsConnecting(false);
+        return;
+      }
+      setValidationError(null);
+      validData = normalizeProviderConfig(
+        zodResult.data,
+        extensionId,
+        undefined,
+      );
+    } else {
+      const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
+      if (!parsed.success) {
+        setValidationError(parsed.error);
+        const msg =
+          getFirstZodValidationMessage(parsed.error) || 'Invalid configuration';
+        toast.error(msg);
+        setIsConnecting(false);
+        return;
+      }
+      setValidationError(null);
+      validData = parsed.data as Record<string, unknown>;
     }
-    const validData = parsed.data as Record<string, unknown>;
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -371,6 +433,8 @@ export function DatasourceConnectForm({
     workspace.userId,
     projectRepository,
     createDatasourceMutation,
+    usePresetForm,
+    extensionId,
   ]);
 
   const handleUpdate = useCallback(async () => {
@@ -384,14 +448,38 @@ export function DatasourceConnectForm({
       return;
     }
     setIsConnecting(true);
-    const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
-    if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? 'Invalid configuration';
-      toast.error(msg);
-      setIsConnecting(false);
-      return;
+
+    let validData: Record<string, unknown>;
+    if (usePresetForm) {
+      const zodResult = validateProviderConfigWithZod(
+        formValues,
+        extensionId,
+        undefined,
+      );
+      if (!zodResult.success) {
+        setValidationError(zodResult.zodError ?? null);
+        toast.error(zodResult.error);
+        setIsConnecting(false);
+        return;
+      }
+      setValidationError(null);
+      validData = normalizeProviderConfig(
+        zodResult.data,
+        extensionId,
+        undefined,
+      );
+    } else {
+      const parsed = (effectiveSchema as z.ZodTypeAny).safeParse(formValues);
+      if (!parsed.success) {
+        setValidationError(parsed.error);
+        const msg = parsed.error.issues[0]?.message ?? 'Invalid configuration';
+        toast.error(msg);
+        setIsConnecting(false);
+        return;
+      }
+      setValidationError(null);
+      validData = parsed.data as Record<string, unknown>;
     }
-    const validData = parsed.data as Record<string, unknown>;
     const driver = resolveDatasourceDriver(dsMeta, { config: validData });
     const runtime = driver?.runtime ?? 'browser';
     const datasourceKind =
@@ -413,6 +501,8 @@ export function DatasourceConnectForm({
     datasourceName,
     workspace.userId,
     updateDatasourceMutation,
+    usePresetForm,
+    extensionId,
   ]);
 
   const handleConfirmDelete = useCallback(() => {
@@ -436,7 +526,6 @@ export function DatasourceConnectForm({
   const isTestConnectionDisabled = isActionDisabled || !isFormValid;
   const isSubmitDisabled =
     isActionDisabled ||
-    !isFormValid ||
     (existingDatasource ? false : isTestConnectionLoading);
   const actionsEl = (
     <div className="flex flex-col-reverse gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between">
@@ -519,7 +608,7 @@ export function DatasourceConnectForm({
               <span className="text-2xl font-semibold tracking-tight">
                 Connect to {extensionMeta.name}
               </span>
-              <DatasourceDocsLink docsUrl={extension.data?.docsUrl} />
+              <DatasourceDocsLink docsUrl={docsUrl} />
             </div>
           </div>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -602,30 +691,65 @@ export function DatasourceConnectForm({
             </div>
           ) : (
             <div className="space-y-6">
-              <FormRenderer
-                schema={effectiveSchema}
-                onSubmit={() => {}}
-                formId={formId ?? 'datasource-form'}
-                locale={i18n.resolvedLanguage}
-                onFormReady={(values) =>
-                  handleFormReady(values as Record<string, unknown>)
-                }
-                onValidityChange={setSchemaValid}
-                defaultValues={
-                  existingDatasource?.config as
+              {extensionId === 's3' ? (
+                <DatasourceS3Fields
+                  key={existingDatasource?.id ?? 'new'}
+                  formId={formId ?? 'datasource-form'}
+                  onFormReady={handleFormReady}
+                  onValidityChange={setSchemaValid}
+                  defaultValues={
+                    existingDatasource?.config as
                     | Record<string, unknown>
                     | undefined
-                }
-              />
+                  }
+                />
+              ) : usePresetForm ? (
+                <DatasourceConnectionFields
+                  key={existingDatasource?.id ?? 'new'}
+                  extensionId={extensionId}
+                  formConfig={undefined}
+                  onFormReady={handleFormReady}
+                  onValidityChange={setSchemaValid}
+                  _formId={formId ?? 'datasource-form'}
+                  defaultValues={
+                    existingDatasource?.config as
+                    | Record<string, unknown>
+                    | undefined
+                  }
+                />
+              ) : (
+                <FormRenderer
+                  schema={effectiveSchema}
+                  onSubmit={() => { }}
+                  formId={formId ?? 'datasource-form'}
+                  locale={i18n.resolvedLanguage}
+                  onFormReady={(values) =>
+                    handleFormReady(values as Record<string, unknown>)
+                  }
+                  onValidityChange={setSchemaValid}
+                  defaultValues={
+                    existingDatasource?.config as
+                    | Record<string, unknown>
+                    | undefined
+                  }
+                />
+              )}
               {urlValidation.error ? (
                 <p
-                  className="text-destructive text-sm"
+                  className="bg-destructive/15 text-destructive dark:bg-destructive/25 rounded-md px-3 py-2 text-sm font-medium dark:text-red-300"
                   role="alert"
                   data-test="datasource-url-validation-error"
                 >
                   {urlValidation.error}
                 </p>
               ) : null}
+              {validationError && (
+                <ZodErrorVisualizer
+                  error={validationError}
+                  className="mt-4"
+                  title="Check the following fields"
+                />
+              )}
             </div>
           )}
         </section>

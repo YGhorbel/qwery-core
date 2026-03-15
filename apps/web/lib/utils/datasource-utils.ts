@@ -5,10 +5,6 @@
 
 import { z } from 'zod';
 import type { ExtensionDefinition } from '@qwery/extensions-sdk';
-import {
-  parseGoogleSheetsUrl,
-  convertGoogleSheetsToEmbedUrl,
-} from './google-sheets-preview';
 
 /** Minimal extension meta for validation and preview (from ExtensionDefinition). */
 export type DatasourceExtensionMeta = Pick<
@@ -286,16 +282,12 @@ export function getDatasourcePreviewUrl(
     | undefined;
 
   if (kind === 'embeddable' && sharedLink && isGsheetLikeUrl(sharedLink)) {
-    const embedUrl = convertGoogleSheetsToEmbedUrl(sharedLink);
-    if (embedUrl) return embedUrl;
-
-    const urlInfo = parseGoogleSheetsUrl(sharedLink);
-    if (urlInfo) {
-      if (urlInfo.isPublishedUrl) {
-        return `https://docs.google.com/spreadsheets/d/e/${urlInfo.sheetId}/pubhtml?widget=true&headers=false&gid=${urlInfo.gid}`;
-      }
-      return `https://docs.google.com/spreadsheets/d/${urlInfo.sheetId}/pubhtml?widget=true&headers=false&gid=${urlInfo.gid}`;
-    }
+    const trimmed = sharedLink.trim();
+    const withProtocol =
+      trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : `https://${trimmed}`;
+    return withProtocol;
   }
 
   if (kind === 'data-file') {
