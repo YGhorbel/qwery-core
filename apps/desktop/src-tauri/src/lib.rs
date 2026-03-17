@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::process::Command;
+use std::io::Write;
 use tauri::Manager;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use keyring::Entry;
@@ -39,6 +40,21 @@ fn keyring_entry(key: &str) -> Result<Entry, String> {
     Entry::new(SERVICE_NAME, key).map_err(|e| format!("keyring init error: {e}"))
 }
 
+fn log_path(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("desktop.log"))
+}
+
+fn append_log_line(app: &tauri::AppHandle, line: &str) {
+    let Some(path) = log_path(app) else { return };
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&path) else {
+        return;
+    };
+    let _ = writeln!(f, "{line}");
+}
+
 #[tauri::command]
 fn save_api_key(key: String, value: String) -> Result<(), String> {
     let entry = keyring_entry(&key)?;
@@ -61,8 +77,30 @@ fn get_api_key(key: String) -> Result<Option<String>, String> {
 fn delete_api_key(key: String) -> Result<(), String> {
     let entry = keyring_entry(&key)?;
     entry
-        .set_password("")
+        .delete_credential()
+        .or_else(|e| match e {
+            keyring::Error::NoEntry => Ok(()),
+            other => Err(other),
+        })
         .map_err(|e| format!("keyring delete error: {e}"))
+}
+
+#[tauri::command]
+fn debug_keyring_status() -> HashMap<String, String> {
+    let mut out = HashMap::new();
+    for key in MANAGED_KEYS {
+        let status = match keyring_entry(key) {
+            Ok(entry) => match entry.get_password() {
+                Ok(v) if !v.is_empty() => "set".to_string(),
+                Ok(_) => "empty".to_string(),
+                Err(keyring::Error::NoEntry) => "missing".to_string(),
+                Err(e) => format!("error:{e}"),
+            },
+            Err(e) => format!("error:{e}"),
+        };
+        out.insert((*key).to_string(), status);
+    }
+    out
 }
 
 const MANAGED_KEYS: &[&str] = &[
@@ -175,6 +213,7 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
             kill_previous_api_server(&app_handle);
+            append_log_line(&app_handle, "desktop: starting");
 
             let resource_dir = app.path()
                 .resolve("", tauri::path::BaseDirectory::Resource)
@@ -250,11 +289,24 @@ pub fn run() {
                 .envs(std::env::vars_os());
 
             for key in MANAGED_KEYS {
-                if let Ok(entry) = keyring_entry(key) {
-                    if let Ok(value) = entry.get_password() {
-                        if !value.is_empty() {
+                match keyring_entry(key) {
+                    Ok(entry) => match entry.get_password() {
+                        Ok(value) if !value.is_empty() => {
+                            append_log_line(&app_handle, &format!("desktop:keyring {key}=set"));
                             cmd = cmd.env(key, value);
                         }
+                        Ok(_) => {
+                            append_log_line(&app_handle, &format!("desktop:keyring {key}=empty"));
+                        }
+                        Err(keyring::Error::NoEntry) => {
+                            append_log_line(&app_handle, &format!("desktop:keyring {key}=missing"));
+                        }
+                        Err(e) => {
+                            append_log_line(&app_handle, &format!("desktop:keyring {key}=error:{e}"));
+                        }
+                    },
+                    Err(e) => {
+                        append_log_line(&app_handle, &format!("desktop:keyring {key}=error:{e}"));
                     }
                 }
             }
@@ -301,16 +353,18 @@ pub fn run() {
             }
 
             // Optional: Log server output in development
-            #[cfg(debug_assertions)]
             {
+                let app_for_logs = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     while let Some(event) = rx.recv().await {
                         match event {
                             CommandEvent::Stdout(line) => {
-                                println!("API Server: {}", String::from_utf8_lossy(&line));
+                                let s = String::from_utf8_lossy(&line);
+                                append_log_line(&app_for_logs, &format!("bun:stdout {s}"));
                             }
                             CommandEvent::Stderr(line) => {
-                                eprintln!("API Server Error: {}", String::from_utf8_lossy(&line));
+                                let s = String::from_utf8_lossy(&line);
+                                append_log_line(&app_for_logs, &format!("bun:stderr {s}"));
                             }
                             _ => {}
                         }
@@ -380,6 +434,7 @@ pub fn run() {
             save_api_key,
             get_api_key,
             delete_api_key,
+            debug_keyring_status,
             get_app_config,
             set_app_config
         ])

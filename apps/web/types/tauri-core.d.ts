@@ -1,5 +1,8 @@
 declare module '@tauri-apps/api/core' {
   export function invoke(
+    cmd: 'debug_keyring_status',
+  ): Promise<Record<string, string>>;
+  export function invoke(
     cmd: 'get_app_config',
   ): Promise<Record<string, string>>;
   export function invoke(

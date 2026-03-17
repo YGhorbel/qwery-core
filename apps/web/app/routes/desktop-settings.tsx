@@ -86,6 +86,9 @@ export default function DesktopSettingsRoute() {
   const [configuredKeys, setConfiguredKeys] = useState<Record<string, boolean>>(
     {},
   );
+  const [keyringStatus, setKeyringStatus] = useState<Record<string, string>>(
+    {},
+  );
   const [keysToDelete, setKeysToDelete] = useState<Record<string, boolean>>({});
   const [initialValues, setInitialValues] = useState<KeyValues>({});
   const [initialConfig, setInitialConfig] = useState<ConfigValues>({});
@@ -288,6 +291,48 @@ export default function DesktopSettingsRoute() {
                 <h2 className="text-sm font-medium">LLM / Models</h2>
                 <Separator />
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const core = await import('@tauri-apps/api/core');
+                    const status = await core.invoke<Record<string, string>>(
+                      'debug_keyring_status',
+                    );
+                    setKeyringStatus(status ?? {});
+                    toast.message('Keyring status refreshed');
+                  }}
+                >
+                  Refresh keyring status
+                </Button>
+                {Object.keys(keyringStatus).length ? (
+                  <span className="text-muted-foreground text-xs">
+                    {
+                      Object.entries(keyringStatus).filter(
+                        ([, v]) => v === 'set',
+                      ).length
+                    }{' '}
+                    set / {Object.keys(keyringStatus).length} tracked
+                  </span>
+                ) : null}
+              </div>
+              {Object.keys(keyringStatus).length ? (
+                <div className="rounded-md border p-3 text-xs">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {Object.entries(keyringStatus).map(([k, v]) => (
+                      <div
+                        key={k}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="font-mono">{k}</span>
+                        <span className="text-muted-foreground">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {KEY_GROUPS.map((group) => (
                 <div key={group.title} className="space-y-4">
                   <h3 className="text-muted-foreground text-xs font-medium">
