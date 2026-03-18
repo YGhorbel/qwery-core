@@ -125,12 +125,11 @@ async function runExtensionsBuild() {
         if (runtime === 'node' && esbuild) {
           // Bundle node drivers for desktop: packaged app cannot resolve
           // workspace deps (e.g. @qwery/extensions-sdk) from extension's node_modules
-          const bunEntry = pkg.exports?.['.']?.bun;
-          const entryToUse = bunEntry || entryFile;
-          const sourcePath = path.resolve(
-            pkgDir,
-            entryToUse.replace(/^\.\//, ''),
-          );
+          const srcDriverTs = path.resolve(pkgDir, 'src', 'driver.ts');
+          const manifestEntryPath = path.resolve(pkgDir, entryFile);
+          const sourcePath = (await fileExists(srcDriverTs))
+            ? srcDriverTs
+            : manifestEntryPath;
           const destPath = path.resolve(pkgDir, 'dist', 'driver.js');
           if (await fileExists(sourcePath)) {
             try {
@@ -149,6 +148,7 @@ async function runExtensionsBuild() {
                 platform: 'node',
                 target: 'es2020',
                 outfile: destPath,
+                allowOverwrite: true,
                 external: [
                   // Native bindings - must stay external
                   '@duckdb/node-api',
