@@ -1027,23 +1027,14 @@ export function ToolPart({
       );
     }
 
-    // Handle getSchema errors - show requested detail level above error
+    // Handle getSchema errors
     if (
       part.type === 'tool-getSchema' &&
       part.state === 'output-error' &&
       part.errorText
     ) {
-      const input = part.input as { detailLevel?: 'simple' | 'full' } | null;
       return (
         <div className="space-y-3">
-          {input?.detailLevel && (
-            <div className="bg-muted/50 rounded-md p-3">
-              <p className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
-                Detail Level
-              </p>
-              <p className="text-sm">{input.detailLevel}</p>
-            </div>
-          )}
           <ToolErrorVisualizer errorText={part.errorText} />
         </div>
       );

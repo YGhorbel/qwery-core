@@ -28,6 +28,7 @@ import { useProject } from '~/lib/context/project-context';
 import { useWorkspace } from '~/lib/context/workspace-context';
 import { useConversation } from '~/lib/mutations/use-conversation';
 import { getErrorKey } from '~/lib/utils/error-key';
+import { setChatBootstrapMessage } from '~/lib/utils/chat-session-bootstrap';
 import { usePlayground } from '~/lib/mutations/use-playground';
 
 import { PlaygroundConfirmDialog } from './playground-confirm-dialog';
@@ -62,10 +63,7 @@ export default function WelcomePage() {
     (conversation) => {
       const messageText = input.trim();
       if (messageText) {
-        localStorage.setItem(
-          `pending-message-${conversation.slug}`,
-          messageText,
-        );
+        setChatBootstrapMessage(conversation.slug, messageText);
       }
       setInput('');
       navigate(createPath(pathsConfig.app.conversation, conversation.slug));
@@ -141,13 +139,9 @@ export default function WelcomePage() {
         {
           onSuccess: (conversation) => {
             toast.dismiss('creating-conversation');
-            localStorage.setItem(
-              `pending-message-${conversation.slug}`,
+            setChatBootstrapMessage(
+              conversation.slug,
               selectedSuggestion.query,
-            );
-            localStorage.setItem(
-              `pending-datasource-${conversation.slug}`,
-              playgroundDatasource.id,
             );
             setInput('');
             navigate(

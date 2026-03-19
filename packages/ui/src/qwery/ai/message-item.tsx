@@ -58,8 +58,8 @@ import {
   getFeedbackFromMetadata,
 } from './feedback-types';
 import {
-  messagesToMarkdown,
-  downloadMarkdown,
+  downloadAssistantResponseMarkdown,
+  downloadChatMarkdownUpTo,
 } from './utils/export-to-markdown';
 import {
   DropdownMenu,
@@ -215,31 +215,17 @@ function MessageItemComponent({
   };
 
   const handleExportResponse = () => {
-    const messageIndex = messages.findIndex((m) => m.id === message.id);
-    let userMessage: (typeof messages)[0] | null = null;
-    for (let i = messageIndex - 1; i >= 0; i--) {
-      if (normalizeUIRole(messages[i]?.role) === 'user') {
-        userMessage = messages[i] ?? null;
-        break;
-      }
-    }
-    const messagesToExport = userMessage ? [userMessage, message] : [message];
-
-    const md = messagesToMarkdown(messagesToExport, undefined, { getChartSvg });
-    const date = new Date().toISOString().slice(0, 10);
-    const filename = `response-${date}-${message.id.slice(0, 8)}`;
-    downloadMarkdown(md, filename);
+    downloadAssistantResponseMarkdown(messages, message.id, {
+      getChartSvg,
+      conversationTitle,
+    });
   };
 
   const handleExportChat = () => {
-    const messageIndex = messages.findIndex((m) => m.id === message.id);
-    const messagesUpToThisPoint = messages.slice(0, messageIndex + 1);
-    const md = messagesToMarkdown(messagesUpToThisPoint, conversationTitle, {
+    downloadChatMarkdownUpTo(messages, message.id, {
+      conversationTitle,
       getChartSvg,
     });
-    const filename =
-      conversationTitle || `chat-${new Date().toISOString().slice(0, 10)}`;
-    downloadMarkdown(md, filename);
   };
 
   const textParts = message.parts.filter((p) => p.type === 'text');

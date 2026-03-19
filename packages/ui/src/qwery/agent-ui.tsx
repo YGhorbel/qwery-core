@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/tooltip';
 import {
   type PromptInputMessage,
   usePromptInputAttachments,
+  usePromptInputController,
   PromptInputProvider,
 } from '../ai-elements/prompt-input';
 import {
@@ -2195,6 +2196,7 @@ function PromptInputInner({
   onPreferredSearchEngineChange?: (engine: SearchEngine) => void;
 }) {
   const attachments = usePromptInputAttachments();
+  const { textInput: promptTextInput } = usePromptInputController();
 
   const handleSubmit = async (message: PromptInputMessage) => {
     if (status === 'streaming' || status === 'submitted') {
@@ -2209,6 +2211,10 @@ function PromptInputInner({
     }
 
     try {
+      // Clear immediately on user send action (button or Enter).
+      setState((prev) => ({ ...prev, input: '' }));
+      promptTextInput.clear();
+
       const ds = getDatasourcesForSend?.() ?? selectedDatasources ?? [];
       const bodyDatasources = ds.length > 0 ? ds : undefined;
       const sendPromise = sendMessage(
@@ -2242,13 +2248,12 @@ function PromptInputInner({
           scrollToBottomRef.current?.();
         }, 300);
       });
-      // Don't clear input here - it's already cleared on submit
-      // The input should only be cleared on explicit user action (submit button or Enter)
     } catch {
       toast.error('Failed to send message. Please try again.');
       // On error, restore the input so user can retry
       if (message.text) {
         setState((prev) => ({ ...prev, input: message.text }));
+        promptTextInput.setInput(message.text);
       }
     }
   };
