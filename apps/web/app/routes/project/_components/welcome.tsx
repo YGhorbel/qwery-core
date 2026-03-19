@@ -169,7 +169,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="bg-background h-full overflow-y-auto">
+    <div className="bg-background -mx-8 h-full overflow-y-auto px-8 lg:-mx-64 lg:px-64">
       <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-20">
         <LandingHero title={t('heroTitle')} subtitle={t('heroSubtitle')} />
 
