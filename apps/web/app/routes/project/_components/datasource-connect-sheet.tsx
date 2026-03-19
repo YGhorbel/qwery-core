@@ -295,9 +295,9 @@ export function DatasourceConnectSheet({
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-y-auto">
-              <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-3 pb-6">
-                <div className="min-h-0 shrink-0">
+            <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-4">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <DatasourceConnectForm
                     extensionId={extensionId}
                     projectSlug={projectSlug}
