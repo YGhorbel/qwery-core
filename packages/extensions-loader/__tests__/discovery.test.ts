@@ -358,7 +358,9 @@ describe('discovery', () => {
       delete process.env.QWERY_EXTENSIONS_PATH;
       try {
         const paths = getDefaultExtensionPaths();
-        const occurrences = paths.filter((p) => p === repoExtensionsPath).length;
+        const occurrences = paths.filter(
+          (p) => p === repoExtensionsPath,
+        ).length;
         expect(occurrences).toBeLessThanOrEqual(1);
       } finally {
         if (original !== undefined) {
@@ -421,7 +423,11 @@ describe('discovery', () => {
     it('uses entry when Bun is set but pkg is undefined', () => {
       vi.stubGlobal('Bun', {});
       try {
-        const href = resolveDriverEntryPath('/ext', './dist/driver.js', undefined);
+        const href = resolveDriverEntryPath(
+          '/ext',
+          './dist/driver.js',
+          undefined,
+        );
         expect(href).toMatch(/dist\/driver\.js$/);
       } finally {
         vi.unstubAllGlobals();
