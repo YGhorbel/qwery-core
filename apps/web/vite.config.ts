@@ -65,8 +65,19 @@ function wasmMimeTypePlugin(): Plugin {
   };
 }
 
+const DEV_PORT = Number.parseInt(process.env.PORT ?? '', 10);
+const DEV_SERVER_PORT =
+  Number.isFinite(DEV_PORT) && DEV_PORT > 0 ? DEV_PORT : 3000;
+const DEV_SERVER_HOST = process.env.HOST || '0.0.0.0';
+
 const ALLOWED_HOSTS =
-  process.env.NODE_ENV === 'development' ? ['host.docker.internal'] : [];
+  process.env.NODE_ENV === 'development'
+    ? ['host.docker.internal', '.localhost', 'localhost']
+    : [];
+
+// /api proxy target: default 4096; Portless sets VITE_DEV_API_PROXY (see web:dev:portless).
+const DEV_API_PROXY_TARGET =
+  process.env.VITE_DEV_API_PROXY ?? 'http://localhost:4096';
 
 // Polyfill require() in ESM for deps that use it (e.g. turndown -> @mixmark-io/domino)
 function requirePolyfillPlugin(): Plugin {
@@ -121,14 +132,15 @@ export default defineConfig(({ command }) => ({
     ...tailwindCssVitePlugin.plugins,
   ],
   server: {
-    host: '0.0.0.0',
-    port: 3000,
+    host: DEV_SERVER_HOST,
+    port: DEV_SERVER_PORT,
+    strictPort: Boolean(process.env.PORT),
     allowedHosts: ALLOWED_HOSTS,
     proxy: {
       // Proxy /api to apps/server when client uses relative URLs (VITE_API_URL unset)
       // Enables breadcrumb, orgs, projects, datasources etc. to load from server
       '/api': {
-        target: 'http://localhost:4096',
+        target: DEV_API_PROXY_TARGET,
         changeOrigin: true,
       },
     },
