@@ -218,7 +218,7 @@ function SidebarLayoutInner(
                 className={
                   isNotebookPage
                     ? 'flex-1 overflow-hidden'
-                    : 'flex-1 overflow-hidden px-10 lg:px-52 [--chat-pad-x:2.5rem] lg:[--chat-pad-x:13rem]'
+                    : 'flex-1 overflow-hidden px-10 [--chat-pad-x:2.5rem] lg:px-52 lg:[--chat-pad-x:13rem]'
                 }
               >
                 {props.children}
@@ -277,7 +277,7 @@ function SimpleModeSidebarLayout(
                 className={
                   isNotebookPage
                     ? 'flex-1 overflow-hidden'
-                    : 'flex-1 overflow-hidden px-8 lg:px-48 [--chat-pad-x:1.5rem] lg:[--chat-pad-x:18rem]'
+                    : 'flex-1 overflow-hidden px-8 [--chat-pad-x:1.5rem] lg:px-48 lg:[--chat-pad-x:18rem]'
                 }
               >
                 {props.children}
