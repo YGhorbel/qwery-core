@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import type { z } from 'zod';
 import { z as zLib } from 'zod';
 import { Loader2, Pencil, Shuffle, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -46,13 +45,7 @@ import {
   isGsheetLikeUrl,
 } from '~/lib/utils/datasource-utils';
 import {
-  validateUrlStructure,
-  type DataUrlFormat,
-} from '~/lib/utils/validate-datasource-url-structure';
-import {
   hasLegacyFormRule,
-  normalizeProviderConfig,
-  validateProviderConfigWithZod,
   getDocsUrl,
 } from '~/lib/utils/datasource-form-config';
 import { getLogger } from '@qwery/shared/logger';
@@ -64,14 +57,11 @@ import {
 import { DatasourceDocsLink } from './datasource-docs-link';
 import { DatasourceConnectionFields } from './datasource-connection-fields';
 import { DatasourceS3Fields } from './datasource-s3-fields';
-import {
-  ERROR_KEYS,
-  getErrorKey,
-  getFirstZodValidationMessage,
-} from '~/lib/utils/error-key';
+import { ERROR_KEYS, getErrorKey } from '~/lib/utils/error-key';
 import { shouldInvertDatasourceIcon } from '@qwery/shared/utils';
 import { ZodErrorVisualizer } from '@qwery/ui/qwery/datasource';
 import { ZodError } from 'zod';
+import { validateDatasourceConfigPipeline } from '~/lib/utils/datasource-config-pipeline';
 
 interface DatasourceFormActionsProps {
   onCancel: () => void;
@@ -152,47 +142,6 @@ const DatasourceFormActions = React.memo(function DatasourceFormActions({
     </div>
   );
 });
-
-function resolveValidConfig(
-  formValues: Record<string, unknown>,
-  usePresetForm: boolean,
-  extensionId: string,
-  effectiveSchema: z.ZodTypeAny,
-):
-  | { success: true; data: Record<string, unknown> }
-  | { success: false; error: string; zodError?: ZodError } {
-  if (usePresetForm) {
-    const zodResult = validateProviderConfigWithZod(
-      formValues,
-      extensionId,
-      undefined,
-    );
-    if (!zodResult.success) {
-      return {
-        success: false,
-        error: zodResult.error,
-        zodError: zodResult.zodError,
-      };
-    }
-    return {
-      success: true,
-      data: normalizeProviderConfig(zodResult.data, extensionId, undefined),
-    };
-  }
-  const parsed = effectiveSchema.safeParse(formValues);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error:
-        getFirstZodValidationMessage(parsed.error) || 'Invalid configuration',
-      zodError: parsed.error,
-    };
-  }
-  return {
-    success: true,
-    data: parsed.data as Record<string, unknown>,
-  };
-}
 
 export interface DatasourceConnectFormProps {
   extensionId: string;
@@ -444,39 +393,19 @@ export function DatasourceConnectForm({
       return;
     }
 
-    const result = resolveValidConfig(
-      formValues,
-      usePresetForm,
+    const result = await validateDatasourceConfigPipeline({
+      values: formValues,
       extensionId,
-      effectiveSchema,
-    );
+      schema: effectiveSchema,
+      extensionMeta: extension.data,
+    });
     if (!result.success) {
       setValidationError(result.zodError ?? null);
       toast.error(result.error);
       return;
     }
     setValidationError(null);
-    const validData = result.data;
-    const meta = extension.data;
-
-    if (
-      meta?.previewUrlKind === 'data-file' &&
-      (meta?.previewDataFormat === 'json' ||
-        meta?.previewDataFormat === 'csv' ||
-        meta?.previewDataFormat === 'parquet')
-    ) {
-      const url = getUrlForValidation(validData, meta);
-      if (url) {
-        const structureResult = await validateUrlStructure(
-          url,
-          meta.previewDataFormat as DataUrlFormat,
-        );
-        if (!structureResult.valid) {
-          toast.error(structureResult.error ?? 'URL format does not match');
-          return;
-        }
-      }
-    }
+    const validData = result.config;
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -511,7 +440,6 @@ export function DatasourceConnectForm({
     datasourceName,
     testConnectionMutation,
     onTestConnectionLoadingChange,
-    usePresetForm,
     extensionId,
   ]);
 
@@ -548,12 +476,12 @@ export function DatasourceConnectForm({
       return;
     }
 
-    const result = resolveValidConfig(
-      formValues,
-      usePresetForm,
+    const result = await validateDatasourceConfigPipeline({
+      values: formValues,
       extensionId,
-      effectiveSchema,
-    );
+      schema: effectiveSchema,
+      extensionMeta: extension.data,
+    });
     if (!result.success) {
       setValidationError(result.zodError ?? null);
       toast.error(result.error);
@@ -561,28 +489,7 @@ export function DatasourceConnectForm({
       return;
     }
     setValidationError(null);
-    const validData = result.data;
-    const meta = extension.data;
-
-    if (
-      meta?.previewUrlKind === 'data-file' &&
-      (meta?.previewDataFormat === 'json' ||
-        meta?.previewDataFormat === 'csv' ||
-        meta?.previewDataFormat === 'parquet')
-    ) {
-      const url = getUrlForValidation(validData, meta);
-      if (url) {
-        const structureResult = await validateUrlStructure(
-          url,
-          meta.previewDataFormat as DataUrlFormat,
-        );
-        if (!structureResult.valid) {
-          toast.error(structureResult.error ?? 'URL format does not match');
-          setIsConnecting(false);
-          return;
-        }
-      }
-    }
+    const validData = result.config;
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -626,7 +533,6 @@ export function DatasourceConnectForm({
     workspace.userId,
     projectRepository,
     createDatasourceMutation,
-    usePresetForm,
     extensionId,
   ]);
 
@@ -642,12 +548,12 @@ export function DatasourceConnectForm({
     }
     setIsConnecting(true);
 
-    const result = resolveValidConfig(
-      formValues,
-      usePresetForm,
+    const result = await validateDatasourceConfigPipeline({
+      values: formValues,
       extensionId,
-      effectiveSchema,
-    );
+      schema: effectiveSchema,
+      extensionMeta: extension.data,
+    });
     if (!result.success) {
       setValidationError(result.zodError ?? null);
       toast.error(result.error);
@@ -655,28 +561,7 @@ export function DatasourceConnectForm({
       return;
     }
     setValidationError(null);
-    const validData = result.data;
-    const meta = extension.data;
-
-    if (
-      meta?.previewUrlKind === 'data-file' &&
-      (meta?.previewDataFormat === 'json' ||
-        meta?.previewDataFormat === 'csv' ||
-        meta?.previewDataFormat === 'parquet')
-    ) {
-      const url = getUrlForValidation(validData, meta);
-      if (url) {
-        const structureResult = await validateUrlStructure(
-          url,
-          meta.previewDataFormat as DataUrlFormat,
-        );
-        if (!structureResult.valid) {
-          toast.error(structureResult.error ?? 'URL format does not match');
-          setIsConnecting(false);
-          return;
-        }
-      }
-    }
+    const validData = result.config;
 
     let driver;
     try {
@@ -708,7 +593,6 @@ export function DatasourceConnectForm({
     datasourceName,
     workspace.userId,
     updateDatasourceMutation,
-    usePresetForm,
     extensionId,
   ]);
 

@@ -32,23 +32,15 @@ import { generateRandomName } from '~/lib/names';
 import { useExtensionSchema } from '~/lib/queries/use-extension-schema';
 import { useGetExtension } from '~/lib/queries/use-get-extension';
 import { resolveDriverOrThrow } from '~/lib/utils/datasource-driver';
-import { getUrlForValidation } from '~/lib/utils/datasource-utils';
-import {
-  validateUrlStructure,
-  type DataUrlFormat,
-} from '~/lib/utils/validate-datasource-url-structure';
 import {
   getProjectBySlugKey,
   getProjectBySlugQueryFn,
 } from '~/lib/queries/use-get-projects';
 import { DATASOURCES } from '~/lib/loaders/datasource-loader';
 import { getErrorKey } from '~/lib/utils/error-key';
-import {
-  hasLegacyFormRule,
-  normalizeProviderConfig,
-  validateProviderConfigWithZod,
-} from '~/lib/utils/datasource-form-config';
+import { hasLegacyFormRule } from '~/lib/utils/datasource-form-config';
 import { getLogger } from '@qwery/shared/logger';
+import { validateDatasourceConfigPipeline } from '~/lib/utils/datasource-config-pipeline';
 import { DatasourceConnectionFields } from '../_components/datasource-connection-fields';
 import { DatasourceS3Fields } from '../_components/datasource-s3-fields';
 
@@ -166,40 +158,6 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
     [handleNameSave],
   );
 
-  const getValidConfig = useCallback(
-    (
-      values: Record<string, unknown>,
-    ):
-      | { success: true; config: Record<string, unknown> }
-      | { success: false; error: string } => {
-      if (hasLegacyFormRule(extensionId)) {
-        const result = validateProviderConfigWithZod(values, extensionId);
-        if (result.success) {
-          return {
-            success: true,
-            config: normalizeProviderConfig(result.data, extensionId),
-          };
-        }
-        return { success: false, error: result.error };
-      }
-      const schema = extensionSchema.data;
-      if (schema) {
-        const parsed = schema.safeParse(values);
-        if (parsed.success && parsed.data) {
-          return {
-            success: true,
-            config: parsed.data as Record<string, unknown>,
-          };
-        }
-        const msg =
-          parsed.error?.issues?.[0]?.message ?? 'Invalid configuration';
-        return { success: false, error: msg };
-      }
-      return { success: false, error: 'No schema available' };
-    },
-    [extensionId, extensionSchema.data],
-  );
-
   const handleSubmit = useCallback(
     async (values: unknown) => {
       if (!extension?.data) {
@@ -229,31 +187,17 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
       const valuesRecord = values as Record<string, unknown>;
       const userId = workspace.userId;
 
-      const validated = getValidConfig(valuesRecord);
+      const validated = await validateDatasourceConfigPipeline({
+        values: valuesRecord,
+        extensionId,
+        schema: extensionSchema.data,
+        extensionMeta: extension.data,
+      });
       if (!validated.success) {
         toast.error(validated.error);
         return;
       }
       const config = validated.config;
-      const meta = extension.data;
-      if (
-        meta?.previewUrlKind === 'data-file' &&
-        (meta?.previewDataFormat === 'json' ||
-          meta?.previewDataFormat === 'csv' ||
-          meta?.previewDataFormat === 'parquet')
-      ) {
-        const url = getUrlForValidation(config, meta);
-        if (url) {
-          const structureResult = await validateUrlStructure(
-            url,
-            meta.previewDataFormat as DataUrlFormat,
-          );
-          if (!structureResult.valid) {
-            toast.error(structureResult.error ?? 'URL format does not match');
-            return;
-          }
-        }
-      }
 
       const dsMeta = extension.data as DatasourceExtension | undefined;
       if (!dsMeta) {
@@ -292,7 +236,8 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
       queryClient,
       project_id,
       repositories.project,
-      getValidConfig,
+      extensionId,
+      extensionSchema.data,
       createDatasourceMutation,
       datasourceName,
       t,
@@ -312,31 +257,17 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
       return;
     }
 
-    const validated = getValidConfig(formValues);
+    const validated = await validateDatasourceConfigPipeline({
+      values: formValues,
+      extensionId,
+      schema: extensionSchema.data,
+      extensionMeta: extension.data,
+    });
     if (!validated.success) {
       toast.error(validated.error);
       return;
     }
     const normalizedConfig = validated.config;
-    const meta = extension.data;
-    if (
-      meta?.previewUrlKind === 'data-file' &&
-      (meta?.previewDataFormat === 'json' ||
-        meta?.previewDataFormat === 'csv' ||
-        meta?.previewDataFormat === 'parquet')
-    ) {
-      const url = getUrlForValidation(normalizedConfig, meta);
-      if (url) {
-        const structureResult = await validateUrlStructure(
-          url,
-          meta.previewDataFormat as DataUrlFormat,
-        );
-        if (!structureResult.valid) {
-          toast.error(structureResult.error ?? 'URL format does not match');
-          return;
-        }
-      }
-    }
 
     const dsMeta = extension.data as DatasourceExtension | undefined;
     if (!dsMeta) {
@@ -369,7 +300,8 @@ export default function DatasourcesPage({ loaderData }: Route.ComponentProps) {
   }, [
     extension.data,
     formValues,
-    getValidConfig,
+    extensionId,
+    extensionSchema.data,
     datasourceName,
     testConnectionMutation,
   ]);
