@@ -1,7 +1,14 @@
 import { DefaultChatTransport } from 'ai';
 import { normalizeUIRole } from '@qwery/shared/message-role-utils';
 
-export const defaultTransport = (api: string) =>
+type DefaultTransportOptions = {
+  model?: string;
+};
+
+export const defaultTransport = (
+  api: string,
+  options?: DefaultTransportOptions,
+) =>
   new DefaultChatTransport({
     api,
     prepareSendMessagesRequest: (request) => {
@@ -14,6 +21,7 @@ export const defaultTransport = (api: string) =>
       return {
         body: {
           ...body,
+          ...(options?.model ? { model: body.model ?? options.model } : {}),
           messages: lastUserMessage ? [lastUserMessage] : [],
           ...(trigger ? { trigger } : {}),
         },

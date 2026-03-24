@@ -25,7 +25,7 @@ function getChatApiUrl(conversationSlug: string): string {
 export const transportFactory = (conversationSlug: string, model: string) => {
   // Handle case where model might not have a provider prefix
   if (!model.includes('/')) {
-    return defaultTransport(getChatApiUrl(conversationSlug));
+    return defaultTransport(getChatApiUrl(conversationSlug), { model });
   }
 
   const [provider] = model.split('/');
@@ -34,6 +34,6 @@ export const transportFactory = (conversationSlug: string, model: string) => {
     case 'transformer-browser':
     case 'webllm':
     default:
-      return defaultTransport(getChatApiUrl(conversationSlug));
+      return defaultTransport(getChatApiUrl(conversationSlug), { model });
   }
 };

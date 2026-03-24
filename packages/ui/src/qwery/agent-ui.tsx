@@ -369,6 +369,44 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
 
   const chatMessages = chatMessagesAiSdk as unknown as UIMessage[];
 
+  const sendMessageWithDefaults = useCallback(
+    (
+      message: Parameters<typeof sendMessage>[0],
+      options?: Parameters<typeof sendMessage>[1],
+    ) => {
+      const selectedForRequest =
+        getDatasourcesForSend?.() ?? selectedDatasources;
+      const requestDatasources =
+        selectedForRequest && selectedForRequest.length > 0
+          ? selectedForRequest
+          : undefined;
+      const body = (options?.body ?? {}) as Record<string, unknown>;
+
+      return sendMessage(message, {
+        ...options,
+        body: {
+          ...body,
+          model: body.model ?? effectiveModel,
+          webSearch: body.webSearch ?? state.webSearch,
+          searchEngine:
+            body.searchEngine ??
+            preferredSearchEngineProp ??
+            preferredSearchEngine,
+          datasources: body.datasources ?? requestDatasources,
+        },
+      });
+    },
+    [
+      effectiveModel,
+      getDatasourcesForSend,
+      preferredSearchEngine,
+      preferredSearchEngineProp,
+      selectedDatasources,
+      sendMessage,
+      state.webSearch,
+    ],
+  );
+
   // Play notification sound when agent response completes
   useCompletionSound(status);
 
@@ -405,7 +443,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
         message: Parameters<typeof sendMessage>[0],
         options?: Parameters<typeof sendMessage>[1],
       ) => {
-        return sendMessage(message, options);
+        return sendMessageWithDefaults(message, options);
       };
       (
         wrappedSendMessage as typeof sendMessage & {
@@ -419,7 +457,12 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
         effectiveModel,
       );
     }
-  }, [sendMessage, setMessages, effectiveModel, onSendMessageReady]);
+  }, [
+    sendMessageWithDefaults,
+    setMessages,
+    effectiveModel,
+    onSendMessageReady,
+  ]);
 
   const { setIsProcessing } = useAgentStatus();
 
@@ -967,13 +1010,13 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
         });
         messageText = `__QWERY_CONTEXT__${contextData}__QWERY_CONTEXT_END__${cleanSuggestionText}`;
       }
-      sendMessage({ text: messageText }, {});
+      sendMessageWithDefaults({ text: messageText }, {});
       scrollToBottomRef.current?.();
     },
     [
       messages,
       lastAssistantMessage?.id,
-      sendMessage,
+      sendMessageWithDefaults,
       scrollToBottomRef,
       onBeforeSuggestionSend,
     ],
@@ -1129,7 +1172,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                   />
                   <div className="mx-auto w-full max-w-4xl shrink-0 self-center px-6">
                     <PromptInputInner
-                      sendMessage={sendMessage}
+                      sendMessage={sendMessageWithDefaults}
                       state={state}
                       setState={setState}
                       textareaRef={textareaRef}
@@ -1212,7 +1255,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                     onToolApproval={(approvalId, approved) =>
                       addToolApprovalResponse({ id: approvalId, approved })
                     }
-                    sendMessage={sendMessage}
+                    sendMessage={sendMessageWithDefaults}
                     onPasteToNotebook={onPasteToNotebook}
                     onSubmitFeedback={onSubmitFeedback}
                     openToolPartKeys={openToolPartKeys}
@@ -1263,7 +1306,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                     />
                     <div className="mx-auto w-full max-w-4xl shrink-0 self-center px-6">
                       <PromptInputInner
-                        sendMessage={sendMessage}
+                        sendMessage={sendMessageWithDefaults}
                         state={state}
                         setState={setState}
                         textareaRef={textareaRef}
@@ -1687,7 +1730,9 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                                 <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
                                                   <div className="overflow-wrap-anywhere wrap-break-words flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1">
                                                     <StreamdownWithSuggestions
-                                                      sendMessage={sendMessage}
+                                                      sendMessage={
+                                                        sendMessageWithDefaults
+                                                      }
                                                       messages={messages}
                                                       currentMessageId={
                                                         message.id
@@ -1722,7 +1767,9 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                                 <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
                                                   <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
                                                     <StreamdownWithSuggestions
-                                                      sendMessage={sendMessage}
+                                                      sendMessage={
+                                                        sendMessageWithDefaults
+                                                      }
                                                       messages={messages}
                                                       currentMessageId={
                                                         message.id
@@ -1899,7 +1946,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                                     i === message.parts.length - 1 &&
                                     message.id === messages.at(-1)?.id
                                   }
-                                  sendMessage={sendMessage}
+                                  sendMessage={sendMessageWithDefaults}
                                   messages={messages}
                                 />
                               );
@@ -2014,7 +2061,7 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
             ) : null}
             <div className="mx-auto w-full max-w-4xl px-6 pb-6">
               <PromptInputInner
-                sendMessage={sendMessage}
+                sendMessage={sendMessageWithDefaults}
                 state={state}
                 setState={setState}
                 textareaRef={textareaRef}
