@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import type {
   DriverContext,
   IDataSourceDriver,
@@ -214,7 +215,7 @@ export function makeGSheetDriver(context: DriverContext): IDataSourceDriver {
 
       try {
         const csvUrl = convertToCsvLink(spreadsheetId, gid);
-        const escapedUrl = csvUrl.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(csvUrl);
 
         await conn.run(`
           CREATE OR REPLACE VIEW "sheet" AS
@@ -291,7 +292,7 @@ export function makeGSheetDriver(context: DriverContext): IDataSourceDriver {
 
         // Create view in main engine connection
         const csvUrl = convertToCsvLink(spreadsheetId, gid);
-        const escapedUrl = csvUrl.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(csvUrl);
 
         try {
           await conn.run(`
@@ -507,7 +508,7 @@ export function makeGSheetDriver(context: DriverContext): IDataSourceDriver {
       const validatedTabs: typeof tabsWithUrl = [];
       for (const tab of tabsWithUrl) {
         try {
-          const escaped = tab.csvUrl.replace(/'/g, "''");
+          const escaped = escapeSqlStringLiteral(tab.csvUrl);
           const r = await conn.runAndReadAll(
             `SELECT * FROM read_csv_auto('${escaped}') LIMIT 1`,
           );
@@ -557,7 +558,7 @@ export function makeGSheetDriver(context: DriverContext): IDataSourceDriver {
         usedNames.add(tableName);
 
         const escapedTable = tableName.replace(/"/g, '""');
-        const escapedUrl = tab.csvUrl.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(tab.csvUrl);
         await conn.run(`
           CREATE OR REPLACE VIEW "${escapedSchema}"."${escapedTable}" AS
           SELECT * FROM read_csv_auto('${escapedUrl}')

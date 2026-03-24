@@ -79,10 +79,7 @@ describe('validateDatasourceConfigPipeline', () => {
 
   it('schema path: rejects values failing zod (e.g. URL too long)', async () => {
     const schema = z.object({
-      connectionUrl: z
-        .string()
-        .max(100)
-        .url(),
+      connectionUrl: z.string().max(100).url(),
     });
     const result = await validateDatasourceConfigPipeline({
       values: {
@@ -93,5 +90,21 @@ describe('validateDatasourceConfigPipeline', () => {
       extensionMeta: null,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('fails when remote URL structure validation rejects the URL', async () => {
+    vi.mocked(validateUrlStructure).mockResolvedValueOnce({
+      valid: false,
+      error: 'URL does not return valid JSON',
+    });
+    const result = await validateDatasourceConfigPipeline({
+      values: { url: 'https://example.com/wrong.txt' },
+      extensionId: 'json-online',
+      extensionMeta: jsonOnlinePreviewMeta,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe('URL does not return valid JSON');
+    }
   });
 });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import {
   extractDefaultsFromSchema,
+  getCommaSeparatedArrayInputMaxLength,
   getDefaultValue,
   getEnumValues,
   getFieldMeta,
@@ -156,6 +157,27 @@ describe('getStringChecks', () => {
   it('returns url true for .url() string', () => {
     const checks = getStringChecks(z.string().url());
     expect(checks.url).toBe(true);
+  });
+
+  it('returns max for .max() string', () => {
+    expect(getStringChecks(z.string().max(50)).max).toBe(50);
+  });
+});
+
+describe('getCommaSeparatedArrayInputMaxLength', () => {
+  it('returns maxItems * (perItem + 2) when both bounds exist', () => {
+    const s = z.array(z.string().max(10)).max(3);
+    expect(getCommaSeparatedArrayInputMaxLength(s)).toBe(36);
+  });
+
+  it('returns undefined without array max', () => {
+    const s = z.array(z.string().max(100));
+    expect(getCommaSeparatedArrayInputMaxLength(s)).toBeUndefined();
+  });
+
+  it('returns undefined for non-string element arrays', () => {
+    const s = z.array(z.number()).max(3);
+    expect(getCommaSeparatedArrayInputMaxLength(s)).toBeUndefined();
   });
 });
 

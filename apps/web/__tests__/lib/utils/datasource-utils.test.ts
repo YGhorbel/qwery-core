@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   getDatasourcePreviewUrl,
@@ -12,27 +12,6 @@ import {
   usesParquetDataFormat,
   validateDatasourceUrl,
 } from '~/lib/utils/datasource-utils';
-
-const gsheetHostRegex = /^(?:[a-z0-9-]+\.)?docs\.google\.com$/i;
-const gsheetPathRegex = /^\/spreadsheets\/d\//;
-
-vi.mock('~/lib/utils/google-sheets-preview', () => ({
-  parseGoogleSheetsUrl: vi.fn((url: string) => {
-    try {
-      const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-      if (
-        !gsheetHostRegex.test(u.hostname) ||
-        !gsheetPathRegex.test(u.pathname)
-      )
-        return null;
-      return u.pathname.startsWith('/spreadsheets/d/e/')
-        ? { sheetId: 'pub123', gid: '0', isPublishedUrl: true }
-        : { sheetId: 'abc123', gid: '0', isPublishedUrl: false };
-    } catch {
-      return null;
-    }
-  }),
-}));
 
 describe('isGsheetLikeUrl', () => {
   it('returns true for valid Google Sheets URLs', () => {

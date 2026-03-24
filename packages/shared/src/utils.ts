@@ -146,3 +146,5 @@ export function shouldInvertDatasourceIcon(
   // Temporary global rule until json icon asset is replaced.
   return value === 'json-online' || value.startsWith('json-online.');
 }
+
+export { escapeSqlStringLiteral } from './sql-string-literal';

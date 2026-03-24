@@ -1,5 +1,7 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 import type { DatasourceResultSet } from '@qwery/domain/entities';
+import { getLogger } from '@qwery/shared/logger';
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import { driverCommand } from '~/lib/repositories/api-client';
 
 let db: duckdb.AsyncDuckDB | null = null;
@@ -54,6 +56,7 @@ async function fetchDataFromServer(
       format === 'parquet' ? 'parquet-online' : 'csv-online';
     const driverId =
       format === 'parquet' ? 'parquet-online.duckdb' : 'csv-online.duckdb';
+    const safePath = escapeSqlStringLiteral(url);
 
     const result = await driverCommand<DatasourceResultSet>('query', {
       datasourceProvider,
@@ -61,8 +64,8 @@ async function fetchDataFromServer(
       config: { url },
       sql:
         format === 'parquet'
-          ? `SELECT * FROM read_parquet('${url}') LIMIT ${limit}`
-          : `SELECT * FROM read_csv_auto('${url}') LIMIT ${limit}`,
+          ? `SELECT * FROM read_parquet('${safePath}') LIMIT ${limit}`
+          : `SELECT * FROM read_csv_auto('${safePath}') LIMIT ${limit}`,
     });
 
     return { data: result.rows ?? null, error: null };
@@ -100,7 +103,9 @@ async function fetchData(
           };
         }
       } catch (e) {
-        console.warn('File size check failed, continuing...', e);
+        void getLogger().then((logger) =>
+          logger.warn({ err: e }, 'Data preview HEAD size check failed, continuing'),
+        );
       }
 
       const duckDB = await getDuckDB();
@@ -113,10 +118,11 @@ async function fetchData(
       const conn = await duckDB.connect();
 
       try {
+        const safeFile = escapeSqlStringLiteral(fileName);
         const query =
           format === 'parquet'
-            ? `SELECT * FROM read_parquet('${fileName}') LIMIT ${limit}`
-            : `SELECT * FROM read_csv_auto('${fileName}') LIMIT ${limit}`;
+            ? `SELECT * FROM read_parquet('${safeFile}') LIMIT ${limit}`
+            : `SELECT * FROM read_csv_auto('${safeFile}') LIMIT ${limit}`;
 
         const result = await conn.query(query);
 
@@ -160,9 +166,11 @@ async function fetchData(
         }
       }
     } catch (error) {
-      console.warn(
-        `DuckDB initialization failed for ${format}, trying server fallback...`,
-        error,
+      void getLogger().then((logger) =>
+        logger.warn(
+          { err: error, format },
+          'DuckDB initialization failed, trying server fallback',
+        ),
       );
       return fetchDataFromServer(url, limit, format);
     }

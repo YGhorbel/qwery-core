@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import type {
   DriverContext,
   IDataSourceDriver,
@@ -36,7 +37,7 @@ export function makeJsonDriver(context: DriverContext): IDataSourceDriver {
       const conn = await instance.connect();
 
       try {
-        const escapedUrl = parsedConfig.url.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(parsedConfig.url);
         const escapedViewName = VIEW_NAME.replace(/"/g, '""');
 
         // Create view from JSON URL using read_json_auto
@@ -90,7 +91,7 @@ export function makeJsonDriver(context: DriverContext): IDataSourceDriver {
       if (queryEngineConn) {
         // Use provided connection - create view in main engine
         conn = queryEngineConn;
-        const escapedUrl = parsedConfig.url.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(parsedConfig.url);
         const escapedViewName = VIEW_NAME.replace(/"/g, '""');
 
         // Create view from JSON URL using read_json_auto in main engine

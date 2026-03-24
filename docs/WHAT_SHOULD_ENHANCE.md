@@ -85,7 +85,7 @@ Your are an Open Source expert. Check this repo and provide a score from 0 to 10
 
 #### ❌ Critical Issues
 - **Workflows reference non-existent workflow files** - Badge links to `build_and_test.yml` and `build-release.yml` that don't exist
-- **E2E tests completely missing** - `/apps/e2e` directory exists but is empty, not in CI
+- **E2E tests completely missing** - No Playwright (or other) E2E package in CI yet
 - **No actual releases yet** - Release workflow untested
 - **Coverage not enforced or tracked** - No Codecov integration active
 - **No deploy previews** - Can't test changes before merge
@@ -109,7 +109,7 @@ Your are an Open Source expert. Check this repo and provide a score from 0 to 10
 #### ❌ Critical Problems
 - **Extremely low coverage** - 13 test files for entire monorepo with 9 packages + 2 apps
 - **Estimated <20% code coverage** - Most code completely untested
-- **Zero E2E tests** - `/apps/e2e` exists but is empty
+- **Zero E2E tests** - Not set up yet
 - **Zero integration tests** - No cross-package testing
 - **Web app has 1 test file** - Main application virtually untested
 - **Desktop app has 0 tests** - Electron app completely untested
@@ -313,9 +313,9 @@ Your are an Open Source expert. Check this repo and provide a score from 0 to 10
 #### High Impact, Low Effort
 
 1. **E2E Testing Integration**
-   - Add Playwright workflow to CI
+   - Add Playwright (e.g. `apps/e2e`) and CI workflow
    - Create 5-10 critical path tests
-   - Status: Setup exists in `/apps/e2e`, needs activation
+   - Status: Planned — not in repo yet
 
 2. **Coverage Enforcement**
    - Add Codecov integration

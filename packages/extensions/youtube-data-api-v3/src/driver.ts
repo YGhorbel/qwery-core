@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import { google, youtube_v3 } from 'googleapis';
 
 import type {
@@ -89,8 +90,6 @@ const parseRfc3339 = (value: string | null | undefined): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const escapeString = (value: string): string => value.replace(/'/g, "''");
-
 const toTimestampLiteral = (value: string | null): string => {
   if (!value) {
     return 'NULL';
@@ -104,7 +103,9 @@ const toTimestampLiteral = (value: string | null): string => {
 };
 
 const formatString = (value: string | null | undefined): string =>
-  value === null || value === undefined ? 'NULL' : `'${escapeString(value)}'`;
+  value === null || value === undefined
+    ? 'NULL'
+    : `'${escapeSqlStringLiteral(value)}'`;
 
 const formatNumber = (value: number | null | undefined): string =>
   value === null || value === undefined ? 'NULL' : String(value);
@@ -112,7 +113,7 @@ const formatNumber = (value: number | null | undefined): string =>
 const formatStringArray = (values: string[]): string =>
   values.length === 0
     ? 'ARRAY[]::VARCHAR[]'
-    : `ARRAY[${values.map((tag) => `'${escapeString(tag)}'`).join(', ')}]`;
+    : `ARRAY[${values.map((tag) => `'${escapeSqlStringLiteral(tag)}'`).join(', ')}]`;
 
 const buildTableSql = `
   CREATE OR REPLACE TABLE "${VIEW_NAME}" (

@@ -31,18 +31,20 @@ describe('useTestConnection provider / driver integrity', () => {
   it('calls onError when provider is not in the extensions registry', async () => {
     vi.mocked(useGetDatasourceExtensions).mockReturnValue({
       data: [],
-    } as ReturnType<typeof useGetDatasourceExtensions>);
+    } as unknown as ReturnType<typeof useGetDatasourceExtensions>);
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     const onSuccess = vi.fn();
     const onError = vi.fn();
 
-    const { result } = renderHook(
-      () => useTestConnection(onSuccess, onError),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useTestConnection(onSuccess, onError), {
+      wrapper: createWrapper(queryClient),
+    });
 
     const payload = {
       datasource_provider: 'missing-provider-xyz',
@@ -74,15 +76,17 @@ describe('useTestConnection provider / driver integrity', () => {
     } as ReturnType<typeof useGetDatasourceExtensions>);
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     const onSuccess = vi.fn();
     const onError = vi.fn();
 
-    const { result } = renderHook(
-      () => useTestConnection(onSuccess, onError),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useTestConnection(onSuccess, onError), {
+      wrapper: createWrapper(queryClient),
+    });
 
     const payload = {
       datasource_provider: 'postgresql',

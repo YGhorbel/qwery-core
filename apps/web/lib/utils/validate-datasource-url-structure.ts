@@ -12,6 +12,19 @@ export interface ValidateUrlStructureResult {
   error: string | null;
 }
 
+const URL_STRUCTURE_CACHE_TTL_MS = 60_000;
+const urlStructureSuccessCache = new Map<
+  string,
+  { expiresAt: number; result: ValidateUrlStructureResult }
+>();
+
+function urlStructureCacheKey(
+  url: string,
+  expectedFormat: DataUrlFormat,
+): string {
+  return `${expectedFormat}\0${url}`;
+}
+
 export async function validateUrlStructure(
   url: string,
   expectedFormat: DataUrlFormat,
@@ -24,16 +37,30 @@ export async function validateUrlStructure(
     return { valid: false, error: 'Please enter a valid URL (http or https)' };
   }
 
+  const key = urlStructureCacheKey(trimmed, expectedFormat);
+  const now = Date.now();
+  const hit = urlStructureSuccessCache.get(key);
+  if (hit && hit.expiresAt > now && hit.result.valid) {
+    return hit.result;
+  }
+
   try {
     const result = await apiPost<{ valid: boolean; error?: string }>(
       '/datasources/validate-url',
       { url: trimmed, expectedFormat },
       { timeout: 20_000 },
     );
-    return {
+    const normalized: ValidateUrlStructureResult = {
       valid: result.valid === true,
       error: result.error ?? null,
     };
+    if (normalized.valid) {
+      urlStructureSuccessCache.set(key, {
+        expiresAt: now + URL_STRUCTURE_CACHE_TTL_MS,
+        result: normalized,
+      });
+    }
+    return normalized;
   } catch (err) {
     const message =
       err && typeof err === 'object' && 'details' in err

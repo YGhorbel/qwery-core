@@ -305,18 +305,82 @@ export function getStringChecks(schema: z.ZodTypeAny): {
       kind?: string;
       value?: number;
       format?: string;
-      def?: { format?: string };
+      def?: {
+        format?: string;
+        check?: string;
+        maximum?: number;
+        minimum?: number;
+      };
+      _zod?: {
+        def?: {
+          check?: string;
+          maximum?: number;
+          minimum?: number;
+          format?: string;
+        };
+      };
     };
-    const format = c.format ?? c.def?.format;
+    const z4 = c._zod?.def ?? c.def;
+    const format = c.format ?? z4?.format ?? c.def?.format;
     if (c.kind === 'email' || format === 'email') result.email = true;
     if (c.kind === 'url' || format === 'url') result.url = true;
     if (c.kind === 'min' || (c as { kind?: string }).kind === 'min')
       result.min = c.value;
     if (c.kind === 'max' || (c as { kind?: string }).kind === 'max')
       result.max = c.value;
+    if (z4?.check === 'min_length' && typeof z4.minimum === 'number')
+      result.min = z4.minimum;
+    if (z4?.check === 'max_length' && typeof z4.maximum === 'number')
+      result.max = z4.maximum;
   }
 
   return result;
+}
+
+export function getArrayElementSchema(
+  schema: z.ZodTypeAny,
+): z.ZodTypeAny | undefined {
+  const unwrapped = unwrapSchema(schema);
+  const def = getDef(unwrapped);
+  const t = def?.type ?? def?.typeName;
+  if (t !== 'array' && t !== 'ZodArray') return undefined;
+  return (def as { element?: z.ZodTypeAny }).element;
+}
+
+/** Max item count when the array schema has `.max(n)`. */
+export function getArrayMaxItems(schema: z.ZodTypeAny): number | undefined {
+  const unwrapped = unwrapSchema(schema);
+  const def = getDef(unwrapped);
+  const t = def?.type ?? def?.typeName;
+  if (t !== 'array' && t !== 'ZodArray') return undefined;
+  const checks = def?.checks ?? [];
+  for (const check of checks) {
+    const z4 = (
+      check as { _zod?: { def?: { check?: string; maximum?: number } } }
+    )._zod?.def;
+    if (z4?.check === 'max_length' && typeof z4.maximum === 'number')
+      return z4.maximum;
+    const c = check as { kind?: string; value?: number };
+    if (c.kind === 'max') return c.value;
+  }
+  return undefined;
+}
+
+/**
+ * Bound for comma-separated array textarea when both string element `.max()` and array
+ * `.max()` exist; otherwise rely on Zod (unbounded lists have no single max length).
+ */
+export function getCommaSeparatedArrayInputMaxLength(
+  fieldSchema: z.ZodTypeAny,
+): number | undefined {
+  const arraySchema = unwrapSchema(fieldSchema);
+  if (getSchemaType(arraySchema) !== 'ZodArray') return undefined;
+  const element = getArrayElementSchema(arraySchema);
+  if (!element || getSchemaType(element) !== 'ZodString') return undefined;
+  const perItem = getStringChecks(element).max;
+  const maxItems = getArrayMaxItems(arraySchema);
+  if (perItem == null || maxItems == null) return undefined;
+  return maxItems * (perItem + 2);
 }
 
 /**

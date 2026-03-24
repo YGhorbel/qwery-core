@@ -1242,6 +1242,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -1299,6 +1302,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -1318,6 +1324,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -1356,6 +1365,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -1416,6 +1428,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -1435,6 +1450,9 @@ importers:
       '@qwery/extensions-sdk':
         specifier: workspace:*
         version: link:../../extensions-sdk
+      '@qwery/shared':
+        specifier: workspace:*
+        version: link:../../shared
       googleapis:
         specifier: ^135.0.0
         version: 135.1.0(encoding@0.1.13)

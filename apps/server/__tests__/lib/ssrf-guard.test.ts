@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('dssrf', () => ({
   is_url_safe: vi.fn(),
@@ -14,6 +14,10 @@ import {
 const mockedIsUrlSafe = vi.mocked(is_url_safe);
 
 describe('ssrf-guard', () => {
+  beforeEach(() => {
+    mockedIsUrlSafe.mockReset();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -39,19 +43,55 @@ describe('ssrf-guard', () => {
     expect(parsed.hostname).toBe('example.com');
   });
 
-  it('validates redirect targets too', async () => {
+  it('validates redirect targets with dssrf (not only localhost shape check)', async () => {
     mockedIsUrlSafe.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(null, {
         status: 302,
-        headers: { location: 'http://localhost/secret' },
+        headers: { location: 'https://10.0.0.1/next' },
       }),
     );
 
     await expect(
       fetchWithSsrfProtection('https://example.com'),
-    ).rejects.toThrow(SsrfBlockedError);
+    ).rejects.toThrow(/blocked by SSRF policy/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks non-http(s) protocols', async () => {
+    await expect(assertSafePublicUrl('ftp://example.com/file')).rejects.toThrow(
+      /http or https/,
+    );
+    await expect(assertSafePublicUrl('file:///etc/passwd')).rejects.toThrow(
+      /http or https/,
+    );
+    await expect(assertSafePublicUrl('data:text/plain,hello')).rejects.toThrow(
+      /http or https/,
+    );
+  });
+
+  it('blocks URLs with embedded credentials', async () => {
+    await expect(
+      assertSafePublicUrl('https://user:secret@example.com/x'),
+    ).rejects.toThrow(/credentials are not allowed/);
+  });
+
+  it('stops after max redirects', async () => {
+    mockedIsUrlSafe.mockResolvedValue(true);
+    let step = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      step += 1;
+      return Promise.resolve(
+        new Response(null, {
+          status: 302,
+          headers: { location: `https://example.com/r${step}` },
+        }),
+      );
+    });
+
+    await expect(
+      fetchWithSsrfProtection('https://example.com'),
+    ).rejects.toThrow(/Too many redirects/);
   });
 });

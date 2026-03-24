@@ -49,6 +49,7 @@
   "dependencies": {
     "@duckdb/node-api": "1.4.2-r.1",
     "@qwery/extensions-sdk": "workspace:*",
+    "@qwery/shared": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

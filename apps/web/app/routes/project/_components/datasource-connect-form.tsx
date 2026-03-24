@@ -51,10 +51,7 @@ import {
 } from '~/lib/utils/datasource-form-config';
 import { getLogger } from '@qwery/shared/logger';
 import { useDatasourceAddedFlash } from '~/lib/context/datasource-added-flash-context';
-import {
-  resolveDatasourceDriver,
-  resolveDriverOrThrow,
-} from '~/lib/utils/datasource-driver';
+import { resolveDriverOrThrow } from '~/lib/utils/datasource-driver';
 import { DatasourceDocsLink } from './datasource-docs-link';
 import { DatasourceConnectionFields } from './datasource-connection-fields';
 import { DatasourceS3Fields } from './datasource-s3-fields';
@@ -414,9 +411,17 @@ export function DatasourceConnectForm({
       return;
     }
 
-    const driver = resolveDatasourceDriver(dsMeta, { config: validData });
-    if (!driver) {
-      toast.error(<Trans i18nKey="datasources:notFoundError" />);
+    let driver;
+    try {
+      driver = resolveDriverOrThrow(dsMeta, { config: validData });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? (
+          err.message
+        ) : (
+          <Trans i18nKey="datasources:notFoundError" />
+        ),
+      );
       return;
     }
 
@@ -502,8 +507,14 @@ export function DatasourceConnectForm({
     let driver;
     try {
       driver = resolveDriverOrThrow(dsMeta, { config: validData });
-    } catch {
-      toast.error(<Trans i18nKey="datasources:notFoundError" />);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? (
+          err.message
+        ) : (
+          <Trans i18nKey="datasources:notFoundError" />
+        ),
+      );
       setIsConnecting(false);
       return;
     }
@@ -567,8 +578,14 @@ export function DatasourceConnectForm({
     let driver;
     try {
       driver = resolveDriverOrThrow(dsMeta, { config: validData });
-    } catch {
-      toast.error(<Trans i18nKey="datasources:notFoundError" />);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? (
+          err.message
+        ) : (
+          <Trans i18nKey="datasources:notFoundError" />
+        ),
+      );
       setIsConnecting(false);
       return;
     }
@@ -616,6 +633,7 @@ export function DatasourceConnectForm({
     deleteDatasourceMutation.isPending;
   const isActionDisabled = isConnecting || isPending;
   const isTestConnectionDisabled = isActionDisabled;
+  // Edit flow: allow save while a test is in flight (user may skip re-test after edits).
   const isSubmitDisabled =
     isActionDisabled || (existingDatasource ? false : isTestConnectionLoading);
 

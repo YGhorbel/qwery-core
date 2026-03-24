@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import type { z } from 'zod';
 
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import type {
   DriverContext,
   IDataSourceDriver,
@@ -72,10 +73,6 @@ type DriverConfig = ReturnType<typeof resolveS3Config>;
 
 const VIEW_NAME = 'data';
 
-function escapeSingleQuotes(value: string): string {
-  return value.replace(/'/g, "''");
-}
-
 type S3ConfigurableConnection = { run: (sql: string) => Promise<unknown> };
 
 const S3_SECRET_NAME = 's3_qwery';
@@ -86,11 +83,11 @@ async function configureS3Connection(
 ): Promise<void> {
   await conn.run('INSTALL httpfs;');
   await conn.run('LOAD httpfs;');
-  const keyId = escapeSingleQuotes(config.aws_access_key_id);
-  const secret = escapeSingleQuotes(config.aws_secret_access_key);
-  const region = escapeSingleQuotes(config.region);
+  const keyId = escapeSqlStringLiteral(config.aws_access_key_id);
+  const secret = escapeSqlStringLiteral(config.aws_secret_access_key);
+  const region = escapeSqlStringLiteral(config.region);
   const sessionToken = config.aws_session_token?.trim()
-    ? escapeSingleQuotes(config.aws_session_token.trim())
+    ? escapeSqlStringLiteral(config.aws_session_token.trim())
     : null;
   const endpointRaw = config.endpoint_url?.trim();
   let endpointHost: string | null = endpointRaw
@@ -106,7 +103,7 @@ async function configureS3Connection(
       endpointHost = parts.slice(1).join('.');
     }
   }
-  if (endpointHost) endpointHost = escapeSingleQuotes(endpointHost);
+  if (endpointHost) endpointHost = escapeSqlStringLiteral(endpointHost);
   const isDigitalOcean = config.provider === 'digitalocean';
   const parts = [
     `TYPE s3`,
@@ -126,7 +123,7 @@ async function configureS3Connection(
 }
 
 function buildViewSql(config: DriverConfig): string {
-  const escapedUrl = escapeSingleQuotes(config.urlPattern);
+  const escapedUrl = escapeSqlStringLiteral(config.urlPattern);
   const escapedViewName = VIEW_NAME.replace(/"/g, '""');
   if (config.format === 'parquet') {
     return `CREATE OR REPLACE VIEW "${escapedViewName}" AS SELECT * FROM read_parquet('${escapedUrl}')`;
@@ -135,7 +132,7 @@ function buildViewSql(config: DriverConfig): string {
 }
 
 function buildViewSqlInCatalog(config: DriverConfig, catalogName: string): string {
-  const escapedUrl = escapeSingleQuotes(config.urlPattern);
+  const escapedUrl = escapeSqlStringLiteral(config.urlPattern);
   const escapedCatalog = catalogName.replace(/"/g, '""');
   const escapedViewName = VIEW_NAME.replace(/"/g, '""');
   if (config.format === 'parquet') {
@@ -354,7 +351,7 @@ export function makeS3Driver(context: DriverContext): IDataSourceDriver {
       }
       const catalogName = options.schemaName ?? 'main';
       const escapedCatalog = catalogName.replace(/"/g, '""');
-      const escapedCatalogForQuery = catalogName.replace(/'/g, "''");
+      const escapedCatalogForQuery = escapeSqlStringLiteral(catalogName);
 
       await configureS3Connection(conn, parsedConfig);
 

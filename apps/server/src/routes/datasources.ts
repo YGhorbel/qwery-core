@@ -21,6 +21,46 @@ import { fetchWithSsrfProtection, SsrfBlockedError } from '../lib/ssrf-guard';
 const VALIDATE_URL_TIMEOUT_MS = 15_000;
 const VALIDATE_URL_MAX_BYTES = 5 * 1024 * 1024;
 
+async function readResponseBodyCapped(
+  res: Response,
+  maxBytes: number,
+): Promise<
+  | { ok: true; bytes: Uint8Array }
+  | { ok: false; error: 'too_large'; partialBytes?: Uint8Array }
+> {
+  const reader = res.body?.getReader();
+  if (!reader) {
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > maxBytes) return { ok: false, error: 'too_large' };
+    return { ok: true, bytes: new Uint8Array(buf) };
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.length) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return { ok: false, error: 'too_large' };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    await reader.cancel().catch(() => {});
+    throw new Error('Failed to read response body');
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return { ok: true, bytes: out };
+}
+
 const validateUrlBodySchema = z.object({
   url: z.string().min(1),
   expectedFormat: z.enum(['json', 'csv', 'parquet']),
@@ -85,12 +125,11 @@ export function createDatasourcesRoutes(
             400,
           );
         }
-        const buffer = await res.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        if (bytes.byteLength > VALIDATE_URL_MAX_BYTES) {
+        const bodyRead = await readResponseBodyCapped(res, VALIDATE_URL_MAX_BYTES);
+        if (!bodyRead.ok) {
           return c.json({ error: 'JSON file too large (max 5MB)' }, 400);
         }
-        const text = new TextDecoder().decode(bytes);
+        const text = new TextDecoder().decode(bodyRead.bytes);
         try {
           const data = JSON.parse(text);
           return c.json({ data });
@@ -149,14 +188,17 @@ export function createDatasourcesRoutes(
             error: `URL returned ${res.status}. Ensure the link is publicly accessible.`,
           });
         }
-        const buffer = await res.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        if (bytes.byteLength > VALIDATE_URL_MAX_BYTES) {
+        const bodyRead = await readResponseBodyCapped(
+          res,
+          VALIDATE_URL_MAX_BYTES,
+        );
+        if (!bodyRead.ok) {
           return c.json({
             valid: false,
             error: 'File is too large to validate',
           });
         }
+        const bytes = bodyRead.bytes;
 
         if (expectedFormat === 'json') {
           const text = new TextDecoder().decode(bytes);

@@ -1,6 +1,6 @@
 /**
  * Load a browser driver from URL. Used by getDriverInstance when runtime is 'browser'.
- * Excluded from coverage - tested in e2e.
+ * Excluded from coverage — exercise via browser / integration flows.
  */
 export async function loadBrowserDriver(
   driverId: string,

@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 
+import { escapeSqlStringLiteral } from '@qwery/shared/sql-string-literal';
 import type {
   DriverContext,
   IDataSourceDriver,
@@ -42,7 +43,7 @@ export function makecsvDriver(context: DriverContext): IDataSourceDriver {
         await conn.run('INSTALL httpfs;');
         await conn.run('LOAD httpfs;');
 
-        const escapedUrl = parsedConfig.url.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(parsedConfig.url);
         const escapedViewName = VIEW_NAME.replace(/"/g, '""');
 
         // Create view from csv URL using read_csv
@@ -96,7 +97,7 @@ export function makecsvDriver(context: DriverContext): IDataSourceDriver {
       if (queryEngineConn) {
         // Use provided connection - create view in main engine
         conn = queryEngineConn;
-        const escapedUrl = parsedConfig.url.replace(/'/g, "''");
+        const escapedUrl = escapeSqlStringLiteral(parsedConfig.url);
         const escapedViewName = VIEW_NAME.replace(/"/g, '""');
 
         // Create view from csv URL using read_csv in main engine
@@ -282,7 +283,7 @@ export function makecsvDriver(context: DriverContext): IDataSourceDriver {
 
       const catalogName = options.schemaName ?? 'main';
       const escapedCatalog = catalogName.replace(/"/g, '""');
-      const escapedCatalogForQuery = catalogName.replace(/'/g, "''");
+      const escapedCatalogForQuery = escapeSqlStringLiteral(catalogName);
 
       // Use ATTACH to create a catalog (matches DuckDBNativeAttachmentStrategy and query path resolution)
       // DuckDB resolves "catalog.table" as catalog; CREATE SCHEMA makes a schema, not a catalog
@@ -298,7 +299,7 @@ export function makecsvDriver(context: DriverContext): IDataSourceDriver {
       }
 
       const escapedViewName = VIEW_NAME.replace(/"/g, '""');
-      const escapedUrl = url.replace(/'/g, "''");
+      const escapedUrl = escapeSqlStringLiteral(url);
       await conn.run(`
         CREATE OR REPLACE VIEW "${escapedCatalog}"."${escapedViewName}" AS
         SELECT * FROM read_csv('${escapedUrl}')

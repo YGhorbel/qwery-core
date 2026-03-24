@@ -569,6 +569,11 @@ const DEFAULT_RULE: ProviderRule = {
   docsUrl: null,
 };
 
+/**
+ * Sync point: must match `packages/extensions/gsheet-csv` (and registry) for
+ * previewUrlKind / previewDataFormat. If the extension definition changes,
+ * update this entry or replace with registry-driven meta at call sites.
+ */
 const EXTENSION_META_FOR_VALIDATION: Record<string, DatasourceExtensionMeta> = {
   'gsheet-csv': {
     id: 'gsheet-csv',
