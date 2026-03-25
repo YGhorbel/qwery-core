@@ -46,7 +46,8 @@ export default function TablesPage(props: Route.ComponentProps) {
   const columnCountByTableId = useMemo(() => {
     const map = new Map<string, number>();
     for (const col of (metadata?.columns ?? []) as Column[]) {
-      map.set(col.table_id, (map.get(col.table_id) ?? 0) + 1);
+      const key = String(col.table_id);
+      map.set(key, (map.get(key) ?? 0) + 1);
     }
     return map;
   }, [metadata?.columns]);
@@ -59,7 +60,9 @@ export default function TablesPage(props: Route.ComponentProps) {
       rowsEstimated: table.live_rows_estimate || 0,
       sizeEstimated: table.size || '0 B',
       numberOfColumns:
-        columnCountByTableId.get(table.id) ?? table.columns?.length ?? 0,
+        columnCountByTableId.get(String(table.id)) ??
+        table.columns?.length ??
+        0,
     }));
   }, [filteredTables, columnCountByTableId]);
 

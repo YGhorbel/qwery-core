@@ -160,7 +160,6 @@ export const Tables = memo(function Tables({
                 className="w-full caption-bottom text-sm"
               />
             ),
-            TableBody: TableBody as React.ComponentType,
           }}
         />
       </div>
