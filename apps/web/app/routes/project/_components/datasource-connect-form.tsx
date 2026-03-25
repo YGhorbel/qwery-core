@@ -204,6 +204,18 @@ export function DatasourceConnectForm({
     config: Record<string, unknown>;
   } | null>(null);
 
+  useEffect(() => {
+    if (
+      variant === 'sheet' &&
+      actionsContainerReady &&
+      actionsContainerRef?.current
+    ) {
+      setPortalTarget(actionsContainerRef.current);
+    } else {
+      setPortalTarget(null);
+    }
+  }, [variant, actionsContainerReady, actionsContainerRef]);
+
   const urlValidation = useMemo(() => {
     if (!extensionMeta?.supportsPreview) {
       return {
@@ -252,18 +264,6 @@ export function DatasourceConnectForm({
     lastFormValidRef.current = isFormValid;
     onFormValidityChange(isFormValid);
   }, [isFormValid, onFormValidityChange]);
-
-  useEffect(() => {
-    if (
-      variant === 'sheet' &&
-      actionsContainerReady &&
-      actionsContainerRef?.current
-    ) {
-      setPortalTarget(actionsContainerRef.current);
-    } else {
-      setPortalTarget(null);
-    }
-  }, [variant, actionsContainerReady, actionsContainerRef]);
 
   const { t, i18n } = useTranslation('common');
   const { repositories, workspace } = useWorkspace();

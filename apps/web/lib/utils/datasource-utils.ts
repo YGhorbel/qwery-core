@@ -56,7 +56,7 @@ export function isDataFileUrl(url: string | null | undefined): boolean {
 export function isGsheetLikeUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   const t = url.trim();
-  if (/^[a-zA-Z0-9-_]{20,}$/.test(t)) return true;
+  if (/^1[a-zA-Z0-9-_]{24,}$/.test(t)) return true;
   try {
     const parsed = new URL(t.startsWith('http') ? t : `https://${t}`);
     return (

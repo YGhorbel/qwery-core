@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Datasource } from '@qwery/domain/entities';
-
-function stringifySorted(obj: Record<string, unknown>): string {
-  return JSON.stringify(
-    Object.fromEntries(
-      Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)),
-    ),
-  );
-}
 import type { DatasourcePreviewRef } from './datasource-preview';
 
 import { Check, Pencil, Shuffle, X } from 'lucide-react';
@@ -34,6 +26,10 @@ import { useGetExtension } from '~/lib/queries/use-get-extension';
 import type { ExtensionDefinition } from '@qwery/extensions-sdk';
 import { shouldInvertDatasourceIcon } from '@qwery/shared/utils';
 import { DATASOURCE_INPUT_MAX_LENGTH } from '~/lib/utils/datasource-form-config';
+import {
+  asSubmitRecord,
+  canonicalConfigKeyForDirtyCheck,
+} from '~/lib/utils/datasource-connection-fields-utils';
 
 const SHEET_OVERLAY_Z = 'z-[100]';
 const SHEET_CONTENT_Z = 'z-[101]';
@@ -149,19 +145,21 @@ export function DatasourceConnectSheet({
     if (existingDatasource) {
       const nameChanged =
         datasourceName.trim() !== (existingDatasource.name ?? '').trim();
-      const a = formValues ?? null;
-      const b = existingDatasource.config ?? null;
       const configChanged =
-        a != null && b != null && stringifySorted(a) !== stringifySorted(b);
+        formValues != null &&
+        canonicalConfigKeyForDirtyCheck(extensionId, formValues) !==
+          canonicalConfigKeyForDirtyCheck(
+            extensionId,
+            (existingDatasource.config as Record<string, unknown> | null) ??
+              null,
+          );
       return nameChanged || configChanged;
     }
+
     return (
-      formValues !== null &&
-      Object.values(formValues).some(
-        (v) => v !== undefined && v !== null && v !== '',
-      )
+      formValues != null && Object.keys(asSubmitRecord(formValues)).length > 0
     );
-  }, [existingDatasource, datasourceName, formValues]);
+  }, [existingDatasource, datasourceName, extensionId, formValues]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && hasUnsavedChanges) {
