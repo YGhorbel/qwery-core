@@ -62,6 +62,7 @@ import { useWorkspace } from '~/lib/context/workspace-context';
 import { usePlayground } from '~/lib/mutations/use-playground';
 import { useGetDatasourceExtensions } from '~/lib/queries/use-get-extension';
 import { getErrorKey } from '~/lib/utils/error-key';
+import { shouldInvertDatasourceIcon } from '@qwery/shared/utils';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -538,7 +539,11 @@ export function ListDatasources({
                             <img
                               src={pluginLogoMap.get(provider)!}
                               alt={provider}
-                              className="h-full w-full object-contain"
+                              className={cn(
+                                'h-full w-full object-contain',
+                                shouldInvertDatasourceIcon(provider) &&
+                                  'dark:invert',
+                              )}
                             />
                           ) : (
                             <div className="bg-muted-foreground/20 h-2 w-2 rounded" />
@@ -631,7 +636,12 @@ export function ListDatasources({
                                               alt={
                                                 datasource.datasource_provider
                                               }
-                                              className="h-full w-full object-contain"
+                                              className={cn(
+                                                'h-full w-full object-contain',
+                                                shouldInvertDatasourceIcon(
+                                                  datasource.datasource_provider,
+                                                ) && 'dark:invert',
+                                              )}
                                             />
                                           ) : (
                                             <div className="bg-muted-foreground/20 h-4 w-4 rounded" />
@@ -773,7 +783,12 @@ export function ListDatasources({
                                 <img
                                   src={logo}
                                   alt={datasource.datasource_provider}
-                                  className="h-full w-full object-contain"
+                                  className={cn(
+                                    'h-full w-full object-contain',
+                                    shouldInvertDatasourceIcon(
+                                      datasource.datasource_provider,
+                                    ) && 'dark:invert',
+                                  )}
                                 />
                               ) : (
                                 <div className="bg-muted-foreground/20 h-4 w-4 rounded" />

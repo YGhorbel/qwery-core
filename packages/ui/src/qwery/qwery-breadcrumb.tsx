@@ -25,6 +25,11 @@ import {
 } from '../shadcn/breadcrumb';
 import { Input } from '../shadcn/input';
 
+function shouldInvertIconFromSrc(src: string): boolean {
+  const s = src.toLowerCase();
+  return s.includes('json-online');
+}
+
 export interface BreadcrumbNodeItem {
   id: string;
   name: string;
@@ -196,7 +201,10 @@ export function NodeDropdown({
               <img
                 src={current.icon}
                 alt={current.name}
-                className="h-4 w-4 shrink-0 rounded object-contain"
+                className={cn(
+                  'h-4 w-4 shrink-0 rounded object-contain',
+                  shouldInvertIconFromSrc(current.icon) && 'dark:invert',
+                )}
               />
             )}
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -273,7 +281,11 @@ export function NodeDropdown({
                                   <img
                                     src={item.icon}
                                     alt={item.name}
-                                    className="h-4 w-4 shrink-0 rounded object-contain"
+                                    className={cn(
+                                      'h-4 w-4 shrink-0 rounded object-contain',
+                                      shouldInvertIconFromSrc(item.icon) &&
+                                        'dark:invert',
+                                    )}
                                   />
                                 ))}
                               <span className="truncate text-sm">
