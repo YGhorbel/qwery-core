@@ -9,16 +9,19 @@ import {
   Plus,
   X,
   Database,
+  Folder,
+  Building2,
+  FileCode,
+  MessageSquare,
 } from 'lucide-react';
+
 
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from '../shadcn/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../shadcn/popover';
 import { Skeleton } from '../shadcn/skeleton';
@@ -44,6 +47,13 @@ export interface BreadcrumbNodeItem {
   icon?: string;
 }
 
+export type BreadcrumbEntityType =
+  | 'organization'
+  | 'project'
+  | 'datasource'
+  | 'notebook'
+  | 'conversation';
+
 export interface BreadcrumbNodeConfig {
   items: BreadcrumbNodeItem[];
   current: BreadcrumbNodeItem | null;
@@ -65,6 +75,8 @@ export interface BreadcrumbNodeConfig {
   onEditTitleChange?: (value: string) => void;
   onEditTitleSubmit?: () => void;
   onEditTitleCancel?: () => void;
+  type?: BreadcrumbEntityType;
+  hideSlug?: boolean;
 }
 
 interface NodeDropdownProps {
@@ -222,7 +234,17 @@ export function NodeDropdown({
                 />
               ) : (
                 <div className="bg-muted/50 text-muted-foreground flex h-4 w-4 shrink-0 items-center justify-center rounded">
-                  <Database className="h-3.5 w-3.5" aria-hidden />
+                  {config.type === 'project' ? (
+                    <Folder className="h-3.5 w-3.5" aria-hidden />
+                  ) : config.type === 'organization' ? (
+                    <Building2 className="h-3.5 w-3.5" aria-hidden />
+                  ) : config.type === 'notebook' ? (
+                    <FileCode className="h-3.5 w-3.5" aria-hidden />
+                  ) : config.type === 'conversation' ? (
+                    <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <Database className="h-3.5 w-3.5" aria-hidden />
+                  )}
                 </div>
               )
             ) : null}
@@ -238,44 +260,63 @@ export function NodeDropdown({
         )}
       </PopoverTrigger>
       <PopoverContent
-        className="border-border/50 z-[101] w-[340px] p-0 shadow-lg"
+        className="border-border bg-popover z-[101] w-[340px] overflow-hidden rounded-lg border p-0 shadow-xl"
         align="start"
+        sideOffset={8}
       >
-        <Command className="rounded-lg">
-          <div className="relative flex items-center border-b">
+        <Command shouldFilter={false} className="bg-transparent">
+          <div className="relative">
             <CommandInput
               placeholder={labels.search}
               value={search}
               onValueChange={setSearch}
-              className="h-10 border-b-0 pr-10"
+              className="h-9 border-none bg-transparent focus:ring-0"
+              suffix={
+                <div className="flex shrink-0 items-center gap-1.5 pr-2">
+                  {search.trim().length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSearch('');
+                      }}
+                      className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-6 w-6 items-center justify-center rounded transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {onNew && (
+                    <button
+                      type="button"
+                      onClick={handleNew}
+                      className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-6 cursor-pointer items-center justify-center rounded transition-colors"
+                      title={labels.new}
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  )}
+                </div>
+              }
             />
-            {onNew && (
-              <button
-                type="button"
-                onClick={handleNew}
-                className="text-muted-foreground hover:text-primary hover:bg-accent absolute right-2 flex size-6 cursor-pointer items-center justify-center rounded-md transition-colors"
-                title={labels.new}
-              >
-                <Plus className="size-4" />
-              </button>
-            )}
           </div>
-          <div className="flex max-h-[360px] flex-col">
-            <CommandList className="min-h-0 flex-1 overflow-y-auto">
+          <div className="max-h-[340px] overflow-x-hidden overflow-y-auto">
+            <CommandList className="p-1">
               {isLoading ? (
-                <div className="p-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="mt-2 h-8 w-full" />
-                  <Skeleton className="mt-2 h-8 w-full" />
+                <div className="space-y-1.5 p-2">
+                  <Skeleton className="h-8 w-full rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
                 </div>
               ) : (
                 <>
-                  <CommandEmpty>
-                    <span className="text-muted-foreground text-sm">
-                      {noResultsLabel}
-                    </span>
-                  </CommandEmpty>
-                  {filteredItems.length > 0 && (
+                  {filteredItems.length === 0 ? (
+                    <div className="py-6 text-center text-sm">
+                      <span className="text-muted-foreground text-xs font-medium">
+                        {noResultsLabel}
+                      </span>
+                    </div>
+                  ) : (
                     <CommandGroup>
                       {filteredItems.map((item) => {
                         const isCurrent =
@@ -289,22 +330,21 @@ export function NodeDropdown({
                             value={`${item.name} ${item.slug} ${item.id}`}
                             onSelect={() => handleSelect(item)}
                             className={cn(
-                              'cursor-pointer transition-colors',
-                              isCurrent &&
-                                'bg-primary/10 text-primary font-medium',
+                              'group relative flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 transition-colors',
+                              isCurrent ? 'bg-accent/50 text-foreground' : 'hover:bg-muted/50',
                             )}
                           >
-                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                            <div className="bg-muted/40 group-hover:bg-background flex h-7 w-7 shrink-0 items-center justify-center rounded shadow-inner">
                               {renderIcon?.(item) ??
                                 (item.icon ? (
                                   !isIconBroken(item.icon) ? (
                                     <img
                                       src={item.icon}
-                                      alt={item.name}
+                                      alt=""
                                       className={cn(
-                                        'h-4 w-4 shrink-0 rounded object-contain',
+                                        'h-4 w-4 object-contain transition-transform group-hover:scale-110',
                                         shouldInvertIconFromSrc(item.icon) &&
-                                          'dark:invert',
+                                        'dark:invert',
                                       )}
                                       onError={() =>
                                         setBrokenIcons((prev) =>
@@ -313,24 +353,41 @@ export function NodeDropdown({
                                       }
                                     />
                                   ) : (
-                                    <div className="bg-muted/50 text-muted-foreground flex h-4 w-4 shrink-0 items-center justify-center rounded">
-                                      <Database
-                                        className="h-3.5 w-3.5"
-                                        aria-hidden
-                                      />
-                                    </div>
+                                    <Database
+                                      className="text-muted-foreground h-3 w-3"
+                                      aria-hidden
+                                    />
                                   )
-                                ) : null)}
-                              <span className="truncate text-sm">
+                                ) : (
+                                  <Database
+                                    className="text-muted-foreground h-3 w-3"
+                                    aria-hidden
+                                  />
+                                ))}
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              <span
+                                className={cn(
+                                  'truncate text-[11px] font-bold tracking-tight',
+                                  isCurrent
+                                    ? 'text-foreground'
+                                    : 'text-foreground/80',
+                                )}
+                              >
                                 {highlightSearchMatch(item.name, search, {
                                   highlightClassName: 'bg-[#ffcb51]/40',
                                 })}
                               </span>
-                              {renderBadge?.(item)}
-                              {isCurrent && (
-                                <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
+                              {!config.hideSlug && (
+                                <span className="text-muted-foreground truncate text-[9px] font-medium tracking-widest uppercase">
+                                  {item.slug}
+                                </span>
                               )}
                             </div>
+                            {isCurrent && (
+                              <Check className="text-primary ml-auto h-4 w-4 shrink-0" strokeWidth={2.5} />
+                            )}
+                            {renderBadge?.(item)}
                           </CommandItem>
                         );
                       })}
@@ -340,17 +397,17 @@ export function NodeDropdown({
               )}
             </CommandList>
             {!isLoading && onViewAll && (
-              <div className="bg-muted/10 shrink-0 border-t">
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={handleViewAll}
-                    className="hover:bg-accent cursor-pointer font-medium"
-                  >
-                    <span>{labels.viewAll}</span>
-                  </CommandItem>
-                </CommandGroup>
-              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleViewAll();
+                }}
+                className="text-muted-foreground hover:bg-muted/50 hover:text-foreground border-border/40 flex w-full cursor-pointer items-center justify-center gap-2 border-t px-3 py-2 text-sm font-medium transition-colors"
+              >
+                <span>{labels.viewAll}</span>
+              </button>
             )}
           </div>
         </Command>
@@ -385,10 +442,10 @@ export function GenericBreadcrumb({
           return [
             ...(index > 0
               ? [
-                  <BreadcrumbSeparator key={`sep-${node.current?.id ?? index}`}>
-                    <ChevronRight className="h-4 w-4" />
-                  </BreadcrumbSeparator>,
-                ]
+                <BreadcrumbSeparator key={`sep-${node.current?.id ?? index}`}>
+                  <ChevronRight className="h-4 w-4" />
+                </BreadcrumbSeparator>,
+              ]
               : []),
             <BreadcrumbItem key={node.current?.id ?? index}>
               <NodeDropdown
@@ -431,7 +488,7 @@ export interface QweryBreadcrumbProps {
     items: BreadcrumbNodeItem[];
     isLoading: boolean;
     current: BreadcrumbNodeItem | null;
-    type: 'datasource' | 'notebook' | 'conversation';
+    type: Exclude<BreadcrumbEntityType, 'organization' | 'project'>;
     isEditingTitle?: boolean;
     editTitleValue?: string;
     onEditTitleChange?: (value: string) => void;
@@ -504,6 +561,8 @@ export function QweryBreadcrumb({
       onSelect: onOrganizationSelect,
       onViewAll: onViewAllOrgs,
       onNew: onNewOrg,
+      type: 'organization',
+      hideSlug: true,
     });
   }
 
@@ -518,9 +577,11 @@ export function QweryBreadcrumb({
         viewAll: t('breadcrumb.viewAllProjects'),
         new: t('breadcrumb.newProject'),
       },
-      onSelect: onProjectSelect ?? (() => {}),
+      onSelect: onProjectSelect ?? (() => { }),
       onViewAll: onViewAllProjects,
       onNew: onNewProject,
+      type: 'project',
+      hideSlug: true,
     });
   }
 
@@ -550,10 +611,10 @@ export function QweryBreadcrumb({
             : t('breadcrumb.newDatasource'),
       },
       onSelect: isNotebook
-        ? (onNotebookSelect ?? (() => {}))
+        ? (onNotebookSelect ?? (() => { }))
         : isConversation
-          ? (onConversationSelect ?? (() => {}))
-          : (onDatasourceSelect ?? (() => {})),
+          ? (onConversationSelect ?? (() => { }))
+          : (onDatasourceSelect ?? (() => { })),
       onViewAll: isNotebook
         ? onViewAllNotebooks
         : isConversation
@@ -568,15 +629,16 @@ export function QweryBreadcrumb({
       compareBy: isNotebook || isConversation ? 'id' : 'slug',
       renderBadge: isNotebook
         ? (item) =>
-            unsavedNotebookIds.includes(item.id) ? (
-              <span className="h-2 w-2 shrink-0 rounded-full border border-[#ffcb51]/50 bg-[#ffcb51] shadow-sm" />
-            ) : null
+          unsavedNotebookIds.includes(item.id) ? (
+            <span className="h-2 w-2 shrink-0 rounded-full border border-[#ffcb51]/50 bg-[#ffcb51] shadow-sm" />
+          ) : null
         : undefined,
       isEditingTitle: object.isEditingTitle,
       editTitleValue: object.editTitleValue,
       onEditTitleChange: object.onEditTitleChange,
       onEditTitleSubmit: object.onEditTitleSubmit,
       onEditTitleCancel: object.onEditTitleCancel,
+      type: object.type,
     });
   }
 

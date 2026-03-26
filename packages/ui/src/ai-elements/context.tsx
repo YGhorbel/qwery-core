@@ -9,7 +9,12 @@ import {
 import { Progress } from '../shadcn/progress';
 import { cn } from '../lib/utils';
 import type { LanguageModelUsage } from 'ai';
-import { type ComponentProps, createContext, useContext, ComponentPropsWithoutRef } from 'react';
+import {
+  type ComponentProps,
+  createContext,
+  useContext,
+  ComponentPropsWithoutRef,
+} from 'react';
 import React from 'react';
 
 const PERCENT_MAX = 100;

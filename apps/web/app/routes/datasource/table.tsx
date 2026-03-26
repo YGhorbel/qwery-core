@@ -7,6 +7,7 @@ import {
   type ColumnColumn,
   DEFAULT_VISIBLE_COLUMN_COLUMNS,
 } from '@qwery/ui/qwery/datasource/columns';
+import { PaginationControls } from '@qwery/ui/qwery/datasource';
 import { useGetDatasourceMetadata } from '~/lib/queries/use-get-datasource-metadata';
 import type { Column, Table } from '@qwery/domain/entities';
 import { Input } from '@qwery/ui/input';
@@ -18,22 +19,15 @@ import {
   Info,
   Settings2,
   Filter,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   Loader2,
-  MoreHorizontal,
   Pencil,
   Scissors,
   Trash2,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@qwery/ui/button';
 import { Skeleton } from '@qwery/ui/skeleton';
 import { Label } from '@qwery/ui/label';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from '@qwery/ui/pagination';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -247,13 +241,6 @@ export default function TablePage(props: Route.ComponentProps) {
     return columnListItems.slice(start, start + pagination.pageSize);
   }, [columnListItems, page, pagination.pageSize]);
 
-  const rangeText = useMemo(() => {
-    if (totalCount === 0) return `0-0 of 0`;
-    const from = (page - 1) * pagination.pageSize + 1;
-    const to = Math.min(page * pagination.pageSize, totalCount);
-    return `${from}-${to} of ${totalCount}`;
-  }, [page, pagination.pageSize, totalCount]);
-
   const toggleColumn = useCallback((column: ColumnColumn) => {
     setVisibleColumns((prev) =>
       prev.includes(column)
@@ -442,12 +429,16 @@ export default function TablePage(props: Route.ComponentProps) {
   if (isLoading) {
     return (
       <div className="flex h-full flex-col">
-        <div className="flex shrink-0 flex-col gap-6 px-8 py-6 lg:px-16 lg:py-10">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-12 w-full rounded-xl" />
+        <div className="flex shrink-0 flex-col gap-5 px-8 py-6 lg:px-16 lg:py-10">
+          <Skeleton className="h-4 w-28 rounded-md" />
+          <Skeleton className="h-10 w-72 rounded-lg" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-12 flex-1 rounded-xl" />
+            <Skeleton className="h-12 w-[170px] rounded-xl" />
+          </div>
         </div>
-        <div className="flex-1 px-8 py-6 lg:px-16 lg:py-6">
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+        <div className="min-h-0 flex-1 px-8 py-6 lg:px-16 lg:py-6">
+          <Skeleton className="h-full w-full rounded-xl" />
         </div>
       </div>
     );
@@ -513,7 +504,7 @@ export default function TablePage(props: Route.ComponentProps) {
                     defaultValue: 'Table actions',
                   })}
                 >
-                  <MoreHorizontal className="h-4 w-4" aria-hidden />
+                  <Settings className="h-4 w-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -624,7 +615,7 @@ export default function TablePage(props: Route.ComponentProps) {
           </div>
 
           <Select value={selectedType} onValueChange={handleTypeChange}>
-            <SelectTrigger className="bg-muted/30 border-border/50 hover:bg-muted flex h-12 w-[220px] items-center gap-3 rounded-xl border px-4 transition-all focus:ring-0 focus-visible:ring-0">
+            <SelectTrigger className="bg-muted/30 border-border/50 hover:bg-muted flex h-12 w-[170px] items-center gap-3 rounded-xl border px-4 transition-all focus:ring-0 focus-visible:ring-0">
               <Filter className="text-muted-foreground/60 h-5 w-5 shrink-0" />
               <SelectValue
                 placeholder="All Types"
@@ -645,83 +636,30 @@ export default function TablePage(props: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="h-full px-8 py-6 lg:px-16 lg:py-6">
-          <Columns
-            columns={pagedItems}
-            searchQuery={searchQuery}
-            visibleColumns={visibleColumns}
-            onRenameColumn={openRenameColumn}
-            onDeleteColumn={openDeleteColumn}
+      <div className="min-h-0 flex-1">
+        <div className="flex h-full flex-col px-8 py-6 lg:px-16 lg:py-6">
+          <div className="min-h-0 flex-1">
+            <Columns
+              columns={pagedItems}
+              searchQuery={searchQuery}
+              visibleColumns={visibleColumns}
+              onRenameColumn={openRenameColumn}
+              onDeleteColumn={openDeleteColumn}
+              className="mb-0 h-full"
+            />
+          </div>
+
+          <PaginationControls
+            page={page}
+            pageSize={pagination.pageSize}
+            totalCount={totalCount}
+            onPageSizeChange={(nextPageSize) =>
+              setPagination({ page: 1, pageSize: nextPageSize })
+            }
+            onPageChange={(nextPage) =>
+              setPagination((p) => ({ ...p, page: nextPage }))
+            }
           />
-
-          {totalCount > 0 && totalPages > 1 && (
-            <div className="flex w-full items-center justify-between gap-2 pt-3">
-              <div className="flex items-center gap-2">
-                <Label className="whitespace-nowrap">Rows per page:</Label>
-                <Select
-                  onValueChange={(v) =>
-                    setPagination({ page: 1, pageSize: Number(v) })
-                  }
-                  value={String(pagination.pageSize)}
-                >
-                  <SelectTrigger className="h-9 w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[20, 50, 100, 200].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm whitespace-nowrap">
-                  {rangeText}
-                </span>
-
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <Button
-                        aria-label="Go to previous page"
-                        disabled={page === 1}
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setPagination((p) => ({
-                            ...p,
-                            page: Math.max(1, page - 1),
-                          }))
-                        }
-                      >
-                        <ChevronLeftIcon className="h-4 w-4" />
-                      </Button>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <Button
-                        aria-label="Go to next page"
-                        disabled={page * pagination.pageSize >= totalCount}
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setPagination((p) => ({
-                            ...p,
-                            page: Math.min(totalPages, page + 1),
-                          }))
-                        }
-                      >
-                        <ChevronRightIcon className="h-4 w-4" />
-                      </Button>
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

@@ -1,5 +1,4 @@
-import React, { memo } from 'react';
-import { TableVirtuoso } from 'react-virtuoso';
+import React, { memo, type CSSProperties } from 'react';
 import {
   Table,
   TableBody,
@@ -24,12 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../shadcn/dropdown-menu';
-
-const VirtuosoTableBody = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->((props, ref) => <TableBody ref={ref} {...props} />);
-VirtuosoTableBody.displayName = 'VirtuosoTableBody';
 
 export interface TableListItem {
   tableName: string;
@@ -72,9 +65,7 @@ export interface TablesProps {
   showSchema?: boolean;
 }
 
-const VIRTUALIZE_THRESHOLD = 50;
 const ROW_HEIGHT = 64; // Increased for better spacing
-const MAX_HEIGHT = 800;
 
 export const Tables = memo(function Tables({
   tables,
@@ -90,6 +81,34 @@ export const Tables = memo(function Tables({
   const { t } = useTranslation();
 
   const isVisible = (column: TableColumn) => visibleColumns.includes(column);
+  const orderedVisibleColumns = ALL_TABLE_COLUMNS.filter((column) =>
+    isVisible(column),
+  );
+  const getHeadCornerClassName = (column: TableColumn) =>
+    cn(
+      orderedVisibleColumns[0] === column && 'rounded-tl-xl',
+      orderedVisibleColumns[orderedVisibleColumns.length - 1] === column &&
+        'rounded-tr-xl',
+    );
+  const getColumnWidthStyle = (column: TableColumn): CSSProperties | undefined => {
+    switch (column) {
+      case 'columns':
+        return { width: 100 };
+      case 'rows':
+        return { width: 140 };
+      case 'actions':
+        return { width: 100 };
+      default:
+        return undefined;
+    }
+  };
+  const renderColGroup = () => (
+    <colgroup>
+      {orderedVisibleColumns.map((column) => (
+        <col key={column} style={getColumnWidthStyle(column)} />
+      ))}
+    </colgroup>
+  );
 
   const formatNumber = (num: number) => {
     if (num >= 1_000_000_000) {
@@ -155,36 +174,57 @@ export const Tables = memo(function Tables({
   }
 
   const tableHeader = () => (
-    <TableHeader className="bg-background/95 sticky top-0 z-10 border-b backdrop-blur-sm">
-      <TableRow className="hover:bg-transparent">
+    <TableHeader className="bg-muted/50 border-b">
+      <TableRow className="bg-muted/50 hover:bg-muted/50">
         {isVisible('name') && (
           <TableHead
             className={cn(
-              'text-foreground/70 w-[30%] min-w-[200px] py-4 pl-6 font-semibold',
+              'py-4 pl-6 font-semibold',
+              getHeadCornerClassName('name'),
             )}
           >
             {t('datasource.tables.header.name', { defaultValue: 'Table Name' })}
           </TableHead>
         )}
         {isVisible('description') && (
-          <TableHead className="text-foreground/70 w-[40%] min-w-[250px] py-4 font-semibold">
+          <TableHead
+            className={cn(
+              'py-4 font-semibold',
+              getHeadCornerClassName('description'),
+            )}
+          >
             {t('datasource.tables.header.description', {
               defaultValue: 'Description',
             })}
           </TableHead>
         )}
         {isVisible('columns') && (
-          <TableHead className="text-foreground/70 w-[100px] py-4 text-right font-semibold">
+          <TableHead
+            className={cn(
+              'py-4 text-right font-semibold',
+              getHeadCornerClassName('columns'),
+            )}
+          >
             {t('datasource.tables.header.columns', { defaultValue: 'Cols' })}
           </TableHead>
         )}
         {isVisible('rows') && (
-          <TableHead className="text-foreground/70 w-[140px] py-4 text-right font-semibold">
+          <TableHead
+            className={cn(
+              'py-4 text-right font-semibold',
+              getHeadCornerClassName('rows'),
+            )}
+          >
             {t('datasource.tables.header.rows', { defaultValue: 'Rows' })}
           </TableHead>
         )}
         {isVisible('actions') && (
-          <TableHead className="text-foreground/70 w-[100px] py-4 pr-6 text-right font-semibold">
+          <TableHead
+            className={cn(
+              'py-4 pr-6 text-right font-semibold',
+              getHeadCornerClassName('actions'),
+            )}
+          >
             {t('datasource.tables.header.actions', { defaultValue: 'Actions' })}
           </TableHead>
         )}
@@ -305,38 +345,24 @@ export const Tables = memo(function Tables({
   );
 
   const containerClasses = cn(
-    // NOTE: avoid overflow-hidden here; it breaks sticky headers when the page scroll container is outside.
-    'bg-card border-border/50 relative mb-6 overflow-visible rounded-xl border shadow-sm',
+    'bg-card border-border/50 relative mb-6 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border shadow-sm',
     className,
   );
 
-  if (tables.length > VIRTUALIZE_THRESHOLD) {
-    return (
-      <div className={containerClasses}>
-        <TableVirtuoso
-          style={{ height: MAX_HEIGHT }}
-          data={tables}
-          fixedHeaderContent={tableHeader}
-          itemContent={renderRow}
-          components={{
-            Table: ({ style, ...props }) => (
-              <Table {...props} style={style} className="w-full" />
-            ),
-            TableBody: VirtuosoTableBody,
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className={containerClasses}>
-      <Table>
+      <Table className="table-fixed w-full">
+        {renderColGroup()}
         {tableHeader()}
-        <TableBody>
-          {tables.map((table, index) => renderRow(index, table))}
-        </TableBody>
       </Table>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Table className="table-fixed w-full">
+          {renderColGroup()}
+          <TableBody>
+            {tables.map((table, index) => renderRow(index, table))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 });

@@ -17,6 +17,8 @@ import { cn } from '@qwery/ui/utils';
 import { AccountDropdownContainer } from '~/components/account-dropdown-container';
 import { AppLogo } from '~/components/app-logo';
 import { createNavigationConfig } from '~/config/datasource.navigation.config';
+import pathsConfig, { createPath } from '~/config/paths.config';
+import { useProject } from '~/lib/context/project-context';
 import { SidebarOrgSelector } from '../../project/_components/sidebar-org-selector';
 
 export const DatasourceSidebar = memo(function DatasourceSidebar() {
@@ -24,8 +26,12 @@ export const DatasourceSidebar = memo(function DatasourceSidebar() {
   const slug = params.slug as string;
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const { projectSlug } = useProject();
 
-  const navigationConfig = createNavigationConfig(slug);
+  const navigationConfig = createNavigationConfig(slug, projectSlug);
+  const logoHref = projectSlug
+    ? createPath(pathsConfig.app.projectDatasources, projectSlug)
+    : pathsConfig.app.home;
 
   const handleExpandClick = useCallback(() => {
     toggleSidebar();
@@ -51,6 +57,7 @@ export const DatasourceSidebar = memo(function DatasourceSidebar() {
           )}
         >
           <AppLogo
+            href={logoHref}
             className={cn(
               'h-6 w-6 shrink-0 transition-opacity duration-200',
               'group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:z-0 group-data-[collapsible=icon]:group-hover/logoarea:opacity-0',

@@ -7,6 +7,7 @@ import {
   type TableColumn,
   DEFAULT_VISIBLE_TABLE_COLUMNS,
 } from '@qwery/ui/qwery/datasource/tables';
+import { PaginationControls } from '@qwery/ui/qwery/datasource';
 import {
   Select,
   SelectContent,
@@ -14,12 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@qwery/ui/select';
-import { Label } from '@qwery/ui/label';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from '@qwery/ui/pagination';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,14 +27,7 @@ import { useGetDatasourceMetadata } from '~/lib/queries/use-get-datasource-metad
 import type { Table, Column } from '@qwery/domain/entities';
 import { Input } from '@qwery/ui/input';
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
-import {
-  X,
-  Filter,
-  Settings2,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Loader2,
-} from 'lucide-react';
+import { X, Filter, Settings2, Loader2 } from 'lucide-react';
 import { Button } from '@qwery/ui/button';
 import { Skeleton } from '@qwery/ui/skeleton';
 
@@ -209,13 +197,6 @@ export default function TablesPage(props: Route.ComponentProps) {
     return tableListItems.slice(start, start + pagination.pageSize);
   }, [tableListItems, page, pagination.pageSize]);
 
-  const rangeText = useMemo(() => {
-    if (totalCount === 0) return `0-0 of 0`;
-    const from = (page - 1) * pagination.pageSize + 1;
-    const to = Math.min(page * pagination.pageSize, totalCount);
-    return `${from}-${to} of ${totalCount}`;
-  }, [page, pagination.pageSize, totalCount]);
-
   const basePath = createPath(pathsConfig.app.datasourceTables, slug);
 
   const handleTableClick = useCallback(
@@ -332,12 +313,15 @@ export default function TablesPage(props: Route.ComponentProps) {
   if (isLoading) {
     return (
       <div className="flex h-full flex-col">
-        <div className="flex shrink-0 flex-col gap-6 px-8 py-6 lg:px-16 lg:py-10">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-12 w-full rounded-xl" />
+        <div className="flex shrink-0 flex-col gap-5 px-8 py-6 lg:px-16 lg:py-10">
+          <Skeleton className="h-10 w-56 rounded-lg" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-12 flex-1 rounded-xl" />
+            <Skeleton className="h-12 w-[170px] rounded-xl" />
+          </div>
         </div>
-        <div className="flex-1 px-8 py-6 lg:px-16 lg:py-6">
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+        <div className="min-h-0 flex-1 px-8 py-6 lg:px-16 lg:py-6">
+          <Skeleton className="h-full w-full rounded-xl" />
         </div>
       </div>
     );
@@ -434,7 +418,7 @@ export default function TablesPage(props: Route.ComponentProps) {
 
           {schemas.length > 0 && (
             <Select value={selectedSchema} onValueChange={handleSchemaChange}>
-              <SelectTrigger className="bg-muted/30 border-border/50 hover:bg-muted flex h-12 w-[180px] items-center gap-3 rounded-xl border px-4 transition-all focus:ring-0 focus-visible:ring-0">
+              <SelectTrigger className="bg-muted/30 border-border/50 hover:bg-muted flex h-12 w-[170px] items-center gap-3 rounded-xl border px-4 transition-all focus:ring-0 focus-visible:ring-0">
                 <Filter className="text-muted-foreground/60 h-5 w-5 shrink-0" />
                 <SelectValue
                   placeholder="Select Schema"
@@ -464,88 +448,35 @@ export default function TablesPage(props: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="h-full px-8 py-6 lg:px-16 lg:py-6">
-          <DevProfiler id="DatasourceTables/Tables">
-            <Tables
-              tables={pagedItems}
-              onTableClick={handleTableClick}
-              onRenameTable={openRenameTable}
-              onTruncateTable={openTruncateTable}
-              onDeleteTable={openDeleteTable}
-              searchQuery={searchQuery}
-              visibleColumns={visibleColumns}
-              showSchema={selectedSchema === 'all'}
-            />
-          </DevProfiler>
+      <div className="min-h-0 flex-1">
+        <div className="flex h-full flex-col px-8 py-6 lg:px-16 lg:py-6">
+          <div className="min-h-0 flex-1">
+            <DevProfiler id="DatasourceTables/Tables">
+              <Tables
+                tables={pagedItems}
+                onTableClick={handleTableClick}
+                onRenameTable={openRenameTable}
+                onTruncateTable={openTruncateTable}
+                onDeleteTable={openDeleteTable}
+                searchQuery={searchQuery}
+                visibleColumns={visibleColumns}
+                showSchema={selectedSchema === 'all'}
+                className="mb-0 h-full"
+              />
+            </DevProfiler>
+          </div>
 
-          {totalCount > 0 && totalPages > 1 && (
-            <div className="flex w-full items-center justify-between gap-2 pt-3">
-              <div className="flex items-center gap-2">
-                <Label className="whitespace-nowrap">Rows per page:</Label>
-                <Select
-                  onValueChange={(v) =>
-                    setPagination({ page: 1, pageSize: Number(v) })
-                  }
-                  value={String(pagination.pageSize)}
-                >
-                  <SelectTrigger className="h-9 w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[20, 50, 100, 200].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm whitespace-nowrap">
-                  {rangeText}
-                </span>
-
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <Button
-                        aria-label="Go to previous page"
-                        disabled={page === 1}
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setPagination((p) => ({
-                            ...p,
-                            page: Math.max(1, page - 1),
-                          }))
-                        }
-                      >
-                        <ChevronLeftIcon className="h-4 w-4" />
-                      </Button>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <Button
-                        aria-label="Go to next page"
-                        disabled={page * pagination.pageSize >= totalCount}
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setPagination((p) => ({
-                            ...p,
-                            page: Math.min(totalPages, page + 1),
-                          }))
-                        }
-                      >
-                        <ChevronRightIcon className="h-4 w-4" />
-                      </Button>
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </div>
-          )}
+          <PaginationControls
+            page={page}
+            pageSize={pagination.pageSize}
+            totalCount={totalCount}
+            onPageSizeChange={(nextPageSize) =>
+              setPagination({ page: 1, pageSize: nextPageSize })
+            }
+            onPageChange={(nextPage) =>
+              setPagination((p) => ({ ...p, page: nextPage }))
+            }
+          />
         </div>
       </div>
 

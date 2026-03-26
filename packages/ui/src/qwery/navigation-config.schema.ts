@@ -21,6 +21,7 @@ const RouteChildElement = z.object({
   Icon: z.custom<React.ReactNode>().optional(),
   end: RouteMatchingEnd,
   renderAction: z.custom<React.ReactNode>().optional(),
+  onClick: z.custom<() => void>().optional(),
   title: z.string().optional(),
   hasUnsavedChanges: z.boolean().optional(),
 });
