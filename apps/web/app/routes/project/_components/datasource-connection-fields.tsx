@@ -331,10 +331,7 @@ export function DatasourceConnectionFields({
   );
 
   useEffect(() => {
-    if (
-      debouncedConnectionString.trim() &&
-      config.showDetailsTab
-    ) {
+    if (debouncedConnectionString.trim() && config.showDetailsTab) {
       const parsed = parseConnectionString(
         debouncedConnectionString,
         extensionId,
@@ -358,17 +355,23 @@ export function DatasourceConnectionFields({
         }
         if (parsed.database) {
           if (shouldHydrate('database')) {
-            form.setValue('database', parsed.database, { shouldValidate: false });
+            form.setValue('database', parsed.database, {
+              shouldValidate: false,
+            });
           }
         }
         if (parsed.username) {
           if (shouldHydrate('username')) {
-            form.setValue('username', parsed.username, { shouldValidate: false });
+            form.setValue('username', parsed.username, {
+              shouldValidate: false,
+            });
           }
         }
         if (parsed.password) {
           if (shouldHydrate('password')) {
-            form.setValue('password', parsed.password, { shouldValidate: false });
+            form.setValue('password', parsed.password, {
+              shouldValidate: false,
+            });
           }
         }
         if (parsed.ssl !== undefined && config.showSslToggle) {
@@ -452,7 +455,9 @@ export function DatasourceConnectionFields({
   const showRootError =
     !!rootError && (submitCount > 0 || Object.keys(touchedFields).length > 0);
 
-  const dot = <span className="ml-1 inline-block size-1.5 rounded-full bg-[#ffcb51]" />;
+  const dot = (
+    <span className="ml-1 inline-block size-1.5 rounded-full bg-[#ffcb51]" />
+  );
 
   const isDetailsDirty = useMemo(() => {
     if (!showTabs) return false;
