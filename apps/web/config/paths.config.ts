@@ -36,6 +36,7 @@ const PathsSchema = z.object({
     datasourceSchema: z.string().min(1),
     datasourceTables: z.string().min(1),
     datasourceSettings: z.string().min(1),
+    datasourceAgent: z.string().min(1),
   }),
 });
 
@@ -75,6 +76,7 @@ const pathsConfig = PathsSchema.parse({
     datasourceSchema: '/ds/[slug]/schema',
     datasourceTables: '/ds/[slug]/tables',
     datasourceSettings: '/ds/[slug]/settings',
+    datasourceAgent: '/ds/[slug]/agent',
   },
 } satisfies z.infer<typeof PathsSchema>);
 

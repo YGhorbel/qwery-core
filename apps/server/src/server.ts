@@ -9,6 +9,8 @@ import { createConversationsRoutes } from './routes/conversations';
 import { createOrganizationsRoutes } from './routes/organizations';
 import { createProjectsRoutes } from './routes/projects';
 import { createDatasourcesRoutes } from './routes/datasources';
+import { createOntologyRoutes } from './routes/ontology';
+import { createDataChatsRoutes } from './routes/data-chats';
 import { createDriverRoutes } from './routes/driver';
 import { createExtensionsRoutes } from './routes/extensions';
 import { createMessagesRoutes } from './routes/messages';
@@ -71,6 +73,8 @@ export function createApp() {
   api.route('/organizations', createOrganizationsRoutes(getRepositories));
   api.route('/projects', createProjectsRoutes(getRepositories));
   api.route('/datasources', createDatasourcesRoutes(getRepositories));
+  api.route('/datasources', createOntologyRoutes(getRepositories));
+  api.route('/datasources', createDataChatsRoutes(getRepositories));
   api.route('/driver', createDriverRoutes());
   api.route('/extensions', createExtensionsRoutes());
   api.route('/chat', createChatRoutes());

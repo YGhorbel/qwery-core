@@ -27,6 +27,7 @@
     "@qwery/extensions-loader": "workspace:*",
     "@qwery/extensions-sdk": "workspace:*",
     "@qwery/repository-file": "workspace:*",
+    "@qwery/semantic-layer": "workspace:*",
     "@qwery/shared": "workspace:*",
     "@qwery/telemetry": "workspace:*",
     "class-transformer": "^0.5.1",

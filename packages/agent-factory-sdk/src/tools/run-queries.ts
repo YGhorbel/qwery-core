@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Tool } from './tool';
 import { RunQueryTool } from './run-query';
 import { ExportFilenameSchema } from './schema';
+import { getExtra } from './tool-utils';
 
 const DESCRIPTION = `Run multiple SQL queries using the existing runQuery tool.
 Each query is executed against the same datasource. Provide an exportFilename per query for table exports (e.g. machines-active-status).`;
@@ -29,9 +30,7 @@ export const RunQueriesTool = Tool.define('runQueries', {
   async execute(params, ctx) {
     const startTime = Date.now();
 
-    const { attachedDatasources } = ctx.extra as {
-      attachedDatasources: string[];
-    };
+    const { attachedDatasources } = getExtra(ctx);
 
     if (!attachedDatasources?.[0]) {
       throw new Error('No datasource attached');

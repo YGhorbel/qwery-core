@@ -41,6 +41,7 @@ const datasourceLayout = layout('routes/datasource/layout.tsx', [
   route('ds/:slug/tables/:schema/:tableName', 'routes/datasource/table.tsx'),
   route('ds/:slug/schema', 'routes/datasource/schema.tsx'),
   route('ds/:slug/settings', 'routes/datasource/settings.tsx'),
+  route('ds/:slug/agent', 'routes/datasource/agent.tsx'),
 ]);
 
 // Catch-all route for unmatched paths (must be last)

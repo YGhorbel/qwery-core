@@ -173,6 +173,7 @@
     "datasourceSchema": "Schema",
     "datasourceTables": "Tables",
     "datasourceSettings": "Settings",
+    "datasourceAgent": "Data Agent",
     "datasourceFunctions": "Functions",
     "datasourceViews": "Views",
     "datasourceIndexes": "Indexes",

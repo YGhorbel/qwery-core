@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Tool } from './tool';
 import { runChartSubagent } from '../agents/chart-subagent';
 import { getLogger } from '@qwery/shared/logger';
+import { getExtra } from './tool-utils';
 
 const DESCRIPTION =
   'Chart subagent entrypoint. Generates a chart configuration JSON for visualization using chart-specific prompts and logic, based on query results and user intent.';
@@ -29,11 +30,7 @@ export const ChartSubagentTool = Tool.define('chartSubagent', {
     let fullQueryResults = params.queryResults;
 
     if (!fullQueryResults || (fullQueryResults.rows?.length ?? 0) === 0) {
-      const extra = ctx.extra as {
-        lastRunQueryResult?: {
-          current: { columns: string[]; rows: unknown[] } | null;
-        };
-      };
+      const extra = getExtra(ctx);
       const lastResult = extra?.lastRunQueryResult?.current;
       if (lastResult && lastResult.rows.length > 0) {
         fullQueryResults = {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Database, Settings, Table } from 'lucide-react';
+import { Database, MessageSquare, Settings, Table } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@qwery/ui/navigation-schema';
@@ -25,6 +25,12 @@ const getRoutes = (slug: string) =>
           label: 'common:routes.datasourceTables',
           path: createPath(pathsConfig.app.datasourceTables, slug),
           Icon: <Table className={iconClasses} />,
+          end: true,
+        },
+        {
+          label: 'common:routes.datasourceAgent',
+          path: createPath(pathsConfig.app.datasourceAgent, slug),
+          Icon: <MessageSquare className={iconClasses} />,
           end: true,
         },
       ],

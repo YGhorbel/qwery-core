@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Tool } from './tool';
 import { selectChartType } from '../agents/tools/generate-chart';
 import { getLogger } from '@qwery/shared/logger';
+import { getExtra } from './tool-utils';
 
 const DESCRIPTION = `Analyzes query results to determine the best chart type (bar, line, or pie) based on the data structure and user intent. 
   Use this before generating a chart to select the most appropriate visualization type.`;
@@ -35,11 +36,7 @@ export const SelectChartTypeTool = Tool.define('selectChartType', {
     let fullQueryResults = params.queryResults;
 
     if (!fullQueryResults || (fullQueryResults.rows?.length ?? 0) === 0) {
-      const extra = ctx.extra as {
-        lastRunQueryResult?: {
-          current: { columns: string[]; rows: unknown[] } | null;
-        };
-      };
+      const extra = getExtra(ctx);
       const lastResult = extra?.lastRunQueryResult?.current;
       if (lastResult && lastResult.rows.length > 0) {
         fullQueryResults = {

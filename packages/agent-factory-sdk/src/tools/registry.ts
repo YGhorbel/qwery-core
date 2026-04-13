@@ -1,7 +1,13 @@
 import { tool, jsonSchema } from 'ai';
 import { z } from 'zod';
 import type { Tool } from 'ai';
-import type { ToolInfo, ToolContext, Model, ToolExecute } from './tool';
+import type {
+  ToolInfo,
+  ToolContext,
+  Model,
+  ToolExecute,
+  ToolResult,
+} from './tool';
 import type { AgentInfoWithId } from '../agents/agent';
 import { AskAgent, QueryAgent, CompactionAgent, SummaryAgent } from '../agents';
 import { TodoWriteTool, TodoReadTool } from './todo';
@@ -13,6 +19,8 @@ import { SelectChartTypeTool } from './select-chart-type-tool';
 import { GenerateChartTool } from './generate-chart-tool';
 import { GetSkillTool } from './get-skill';
 import { TaskTool } from './task';
+import { SearchOntologyTool } from './search-ontology.tool';
+import { GetRelationshipsTool } from './get-relationships.tool';
 import { getLogger } from '@qwery/shared/logger';
 import { getMcpTools } from '../mcp/client.js';
 import { GetTodoByConversationService } from '@qwery/domain/services';
@@ -75,6 +83,11 @@ function registerTools() {
   tools.set(GenerateChartTool.id, GenerateChartTool as unknown as ToolInfo);
   tools.set(GetSkillTool.id, GetSkillTool as unknown as ToolInfo);
   tools.set(TaskTool.id, TaskTool as unknown as ToolInfo);
+  tools.set(SearchOntologyTool.id, SearchOntologyTool as unknown as ToolInfo);
+  tools.set(
+    GetRelationshipsTool.id,
+    GetRelationshipsTool as unknown as ToolInfo,
+  );
 }
 
 function registerAgents() {
@@ -103,15 +116,19 @@ export type ForAgentResult = {
   close?: () => Promise<void>;
 };
 
-async function resolveTool(
-  info: ToolInfo,
-  initCtx?: { agent?: { id: string } },
-): Promise<{
+// ── Tool Resolution ─────────────────────────────────────────────────
+
+type ResolvedTool = {
   id: string;
   description: string;
   parameters: z.ZodType;
   execute: ToolExecute<z.ZodType>;
-}> {
+};
+
+async function resolveTool(
+  info: ToolInfo,
+  initCtx?: { agent?: { id: string } },
+): Promise<ResolvedTool> {
   if ('init' in info && typeof info.init === 'function') {
     const result = await info.init(initCtx);
     return { id: info.id, ...result };
@@ -129,11 +146,211 @@ async function resolveTool(
   };
 }
 
+// ── Tool Filtering ──────────────────────────────────────────────────
+
 function whenModelMatches(info: ToolInfo, model: Model): boolean {
   const predicate = 'whenModel' in info ? info.whenModel : undefined;
   if (!predicate) return true;
   return predicate(model);
 }
+
+function filterToolsForAgent(agent: AgentInfoWithId, model: Model): ToolInfo[] {
+  const allTools = Array.from(tools.values());
+  const options = agent.options ?? {};
+  const toolsMap = options.tools as Record<string, boolean> | undefined;
+  const toolIds = options.toolIds as string[] | undefined;
+  const toolDenylist = options.toolDenylist as string[] | undefined;
+
+  let allowlist: string[] | undefined;
+  if (toolsMap && toolsMap['*'] === false) {
+    allowlist = Object.entries(toolsMap)
+      .filter(([k, v]) => k !== '*' && v === true)
+      .map(([k]) => k);
+  } else if (toolIds?.length) {
+    allowlist = toolIds;
+  }
+
+  let byAgent =
+    allowlist != null
+      ? allTools.filter((t) => allowlist!.includes(t.id))
+      : allTools;
+  if (toolDenylist?.length) {
+    byAgent = byAgent.filter((t) => !toolDenylist.includes(t.id));
+  }
+  return byAgent.filter((t) => whenModelMatches(t, model));
+}
+
+// ── Execution Tracking ──────────────────────────────────────────────
+
+function trackExecution(
+  resolved: ResolvedTool,
+  args: unknown,
+  context: ToolContext,
+  toolCallId: string,
+  executeFn: () => Promise<ToolResult>,
+): Promise<ToolResult> {
+  context.onToolStart?.(resolved.id, args, toolCallId);
+  const startedAt = performance.now();
+  let isError = false;
+
+  return executeFn()
+    .catch((error) => {
+      isError = true;
+      throw error;
+    })
+    .finally(() => {
+      const executionTimeMs = Number(
+        (performance.now() - startedAt).toFixed(2),
+      );
+      context.onToolComplete?.(resolved.id, toolCallId, {
+        executionTimeMs,
+        isError,
+      });
+    });
+}
+
+// ── Output Post-Processing ──────────────────────────────────────────
+
+function extractOutputString(raw: ToolResult): {
+  text: string | null;
+  isWrapped: boolean;
+} {
+  if (typeof raw === 'string') {
+    return { text: raw, isWrapped: false };
+  }
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'output' in raw &&
+    Object.keys(raw).length === 1
+  ) {
+    return { text: (raw as { output: string }).output, isWrapped: true };
+  }
+  return { text: null, isWrapped: false };
+}
+
+async function truncateIfNeeded(text: string): Promise<string> {
+  try {
+    const { truncateOutput } = await import('./truncation');
+    const truncated = await truncateOutput(text);
+    if (truncated.truncated) {
+      return truncated.content;
+    }
+  } catch {
+    // truncation not available; fall through
+  }
+  return text;
+}
+
+async function appendTodoReminderIfNeeded(
+  text: string,
+  toolId: string,
+  context: ToolContext,
+): Promise<string> {
+  if (
+    !TASK_COMPLETING_TOOL_IDS.has(toolId) ||
+    !context.extra?.repositories ||
+    !context.conversationId
+  ) {
+    return text;
+  }
+  const repos = context.extra.repositories as Repositories;
+  const todoService = new GetTodoByConversationService(
+    repos.todo,
+    repos.conversation,
+  );
+  const todos = await todoService.execute({
+    conversationId: context.conversationId,
+  });
+  if (todos.some((t) => t.status === 'in_progress')) {
+    return text + TODO_REMINDER;
+  }
+  return text;
+}
+
+async function postProcessOutput(
+  raw: ToolResult,
+  toolId: string,
+  context: ToolContext,
+): Promise<ToolResult> {
+  const { text, isWrapped } = extractOutputString(raw);
+  if (text === null) {
+    return raw as Record<string, unknown>;
+  }
+
+  let finalStr = await truncateIfNeeded(text);
+  finalStr = await appendTodoReminderIfNeeded(finalStr, toolId, context);
+  return isWrapped ? { output: finalStr } : finalStr;
+}
+
+// ── AI SDK Tool Builder ─────────────────────────────────────────────
+
+function buildAiTool(
+  resolved: ResolvedTool,
+  getContext: (options: GetContextOptions) => ToolContext,
+): Tool {
+  const inputSchema =
+    resolved.id === 'todowrite' ? todowriteInputSchema : resolved.parameters;
+
+  return tool({
+    description: resolved.description,
+    inputSchema,
+    execute: async (args, options) => {
+      resolved.parameters.parse(args);
+      const context = getContext({
+        toolCallId: options.toolCallId,
+        abortSignal: options.abortSignal,
+      });
+      const toolCallId = options.toolCallId ?? '';
+
+      const raw = await trackExecution(
+        resolved,
+        args,
+        context,
+        toolCallId,
+        () => resolved.execute(args, context),
+      );
+
+      return postProcessOutput(raw, resolved.id, context);
+    },
+  });
+}
+
+// ── MCP Integration ─────────────────────────────────────────────────
+
+async function mergeMcpTools(
+  result: Record<string, Tool>,
+  forAgentOptions?: ForAgentOptions,
+): Promise<ForAgentResult> {
+  const mcpServerUrl = forAgentOptions?.mcpServerUrl;
+  if (!mcpServerUrl) {
+    return { tools: result };
+  }
+
+  try {
+    const { tools: mcpTools, close } = await getMcpTools(mcpServerUrl, {
+      namePrefix: forAgentOptions?.mcpNamePrefix,
+    });
+    return {
+      tools: { ...result, ...mcpTools },
+      close,
+    };
+  } catch (mcpError) {
+    const logger = await getLogger();
+    logger.warn(
+      {
+        err: mcpError,
+        mcpServerUrl,
+        message:
+          mcpError instanceof Error ? mcpError.message : String(mcpError),
+      },
+      'MCP server unavailable, continuing without MCP tools',
+    );
+    return { tools: result };
+  }
+}
+
+// ── Public Registry ─────────────────────────────────────────────────
 
 export const Registry = {
   tools: {
@@ -157,159 +374,19 @@ export const Registry = {
         throw new Error(`Agent not found: ${agentId}`);
       }
 
-      const allTools = Array.from(tools.values());
-      const options = agent.options ?? {};
-      const toolsMap = options.tools as Record<string, boolean> | undefined;
-      const toolIds = options.toolIds as string[] | undefined;
-      const toolDenylist = options.toolDenylist as string[] | undefined;
-
-      let allowlist: string[] | undefined;
-      if (toolsMap && toolsMap['*'] === false) {
-        allowlist = Object.entries(toolsMap)
-          .filter(([k, v]) => k !== '*' && v === true)
-          .map(([k]) => k);
-      } else if (toolIds?.length) {
-        allowlist = toolIds;
-      }
-
-      let byAgent =
-        allowlist != null
-          ? allTools.filter((t) => allowlist!.includes(t.id))
-          : allTools;
-      if (toolDenylist?.length) {
-        byAgent = byAgent.filter((t) => !toolDenylist.includes(t.id));
-      }
+      let filtered = filterToolsForAgent(agent, model);
       if (forAgentOptions?.webSearch === false) {
-        byAgent = byAgent.filter((t) => t.id !== 'webfetch');
+        filtered = filtered.filter((t) => t.id !== 'webfetch');
       }
-      const byModel = byAgent.filter((t) => whenModelMatches(t, model));
-
-      const result: Record<string, Tool> = {};
       const initCtx = { agent: { id: agentId } };
 
-      for (const info of byModel) {
+      const result: Record<string, Tool> = {};
+      for (const info of filtered) {
         const resolved = await resolveTool(info, initCtx);
-        const inputSchema =
-          resolved.id === 'todowrite'
-            ? todowriteInputSchema
-            : resolved.parameters;
-        result[resolved.id] = tool({
-          description: resolved.description,
-          inputSchema,
-          execute: async (args, options) => {
-            resolved.parameters.parse(args);
-            const context = getContext({
-              toolCallId: options.toolCallId,
-              abortSignal: options.abortSignal,
-            });
-            context.onToolStart?.(resolved.id, args, options.toolCallId ?? '');
-            const startedAt = performance.now();
-            let isError = false;
-            let raw: Awaited<ReturnType<typeof resolved.execute>>;
-            try {
-              raw = await resolved.execute(args, context);
-            } catch (error) {
-              isError = true;
-              throw error;
-            } finally {
-              const executionTimeMs = Number(
-                (performance.now() - startedAt).toFixed(2),
-              );
-              context.onToolComplete?.(resolved.id, options.toolCallId ?? '', {
-                executionTimeMs,
-                isError,
-              });
-            }
-            const toTruncate =
-              typeof raw === 'string'
-                ? raw
-                : typeof raw === 'object' &&
-                    raw !== null &&
-                    'output' in raw &&
-                    Object.keys(raw).length === 1
-                  ? (raw as { output: string }).output
-                  : null;
-            let finalStr: string | null = null;
-            let returnAsOutput = false;
-            if (toTruncate != null) {
-              try {
-                const { truncateOutput } = await import('./truncation');
-                const truncated = await truncateOutput(toTruncate);
-                if (truncated.truncated) {
-                  finalStr = truncated.content;
-                  returnAsOutput =
-                    typeof raw === 'object' &&
-                    raw !== null &&
-                    'output' in raw &&
-                    Object.keys(raw).length === 1;
-                }
-              } catch {
-                // truncation not available; fall through
-              }
-            }
-            if (finalStr === null && typeof raw === 'string') {
-              finalStr = raw;
-            }
-            if (
-              finalStr === null &&
-              typeof raw === 'object' &&
-              raw !== null &&
-              'output' in raw &&
-              Object.keys(raw).length === 1
-            ) {
-              finalStr = (raw as { output: string }).output;
-              returnAsOutput = true;
-            }
-            if (finalStr !== null) {
-              if (
-                TASK_COMPLETING_TOOL_IDS.has(resolved.id) &&
-                context.extra?.repositories &&
-                context.conversationId
-              ) {
-                const repos = context.extra.repositories as Repositories;
-                const todoService = new GetTodoByConversationService(
-                  repos.todo,
-                  repos.conversation,
-                );
-                const todos = await todoService.execute({
-                  conversationId: context.conversationId,
-                });
-                if (todos.some((t) => t.status === 'in_progress')) {
-                  finalStr += TODO_REMINDER;
-                }
-              }
-              return returnAsOutput ? { output: finalStr } : finalStr;
-            }
-            return raw as Record<string, unknown>;
-          },
-        });
+        result[resolved.id] = buildAiTool(resolved, getContext);
       }
 
-      const mcpServerUrl = forAgentOptions?.mcpServerUrl;
-      if (mcpServerUrl) {
-        try {
-          const { tools: mcpTools, close } = await getMcpTools(mcpServerUrl, {
-            namePrefix: forAgentOptions?.mcpNamePrefix,
-          });
-          return {
-            tools: { ...result, ...mcpTools },
-            close,
-          };
-        } catch (mcpError) {
-          const logger = await getLogger();
-          logger.warn(
-            {
-              err: mcpError,
-              mcpServerUrl,
-              message:
-                mcpError instanceof Error ? mcpError.message : String(mcpError),
-            },
-            'MCP server unavailable, continuing without MCP tools',
-          );
-        }
-      }
-
-      return { tools: result };
+      return mergeMcpTools(result, forAgentOptions);
     },
   },
   agents: {

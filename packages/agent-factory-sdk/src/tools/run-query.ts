@@ -6,8 +6,8 @@ import {
 } from '@qwery/extensions-sdk';
 import { getDriverInstance } from '@qwery/extensions-loader';
 import { getLogger } from '@qwery/shared/logger';
-import { Repositories } from '@qwery/domain/repositories';
 import { ExportFilenameSchema, RunQueryResultSchema } from './schema';
+import { getExtra } from './tool-utils';
 
 const DESCRIPTION = `Run a SQL query directly against a single datasource using its native driver. When calling this tool, provide an exportFilename (short descriptive name for the table export, e.g. machines-active-status).`;
 
@@ -23,10 +23,7 @@ export const RunQueryTool = Tool.define('runQuery', {
     ),
   }),
   async execute(params, ctx) {
-    const { repositories, attachedDatasources } = ctx.extra as {
-      repositories: Repositories;
-      attachedDatasources: string[];
-    };
+    const { repositories, attachedDatasources } = getExtra(ctx);
 
     const logger = await getLogger();
     const { datasourceId, query, exportFilename } = params;
@@ -89,14 +86,7 @@ export const RunQueryTool = Tool.define('runQuery', {
         rows: result.rows,
       };
 
-      const extra = ctx.extra as {
-        repositories: Repositories;
-        attachedDatasources: string[];
-        lastRunQueryResult?: {
-          current: { columns: string[]; rows: unknown[] } | null;
-        };
-      };
-
+      const extra = getExtra(ctx);
       if (extra.lastRunQueryResult) {
         extra.lastRunQueryResult.current = fullResult;
       }

@@ -16,7 +16,10 @@
     "evals:preview": "node node_modules/@qwery/evals/bin/evals.mjs preview __evals__"
   },
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
     "./config": "./src/config/index.ts",
     "./config/node": "./src/config/node.ts",
     "./llm": "./src/llm/index.ts",
@@ -44,6 +47,7 @@
     "@qwery/domain": "workspace:*",
     "@qwery/extensions-loader": "workspace:*",
     "@qwery/extensions-sdk": "workspace:*",
+    "@qwery/semantic-layer": "workspace:*",
     "@qwery/shared": "workspace:*",
     "@qwery/telemetry": "workspace:*",
     "ai": "catalog:",

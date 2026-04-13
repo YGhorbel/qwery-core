@@ -142,6 +142,11 @@ export default defineConfig(({ command }) => ({
       '/api': {
         target: DEV_API_PROXY_TARGET,
         changeOrigin: true,
+        // SSE/streaming support: disable compression buffering and extend timeout
+        // for long-running LLM calls (planner + navigator + sql-builder can take >30s)
+        headers: { 'Accept-Encoding': 'identity' },
+        proxyTimeout: 300_000,
+        timeout: 300_000,
       },
     },
   },

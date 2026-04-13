@@ -38,8 +38,13 @@ function messageSuggestsMultiStep(text: string): boolean {
  * Generic reminder context. Extensible for future reminder types and agents.
  */
 export type ReminderContext = {
-  /** List of attached datasource names/ids (no full orchestration result). */
-  attachedDatasourceNames?: string[];
+  /** Attached datasources (id/name/provider/driver). */
+  attachedDatasources?: Array<{
+    id: string;
+    name: string;
+    provider: string;
+    driver: string;
+  }>;
 };
 
 /**
@@ -60,11 +65,11 @@ export function insertReminders(input: {
   if (!lastUser.content) lastUser.content = {};
   if (!lastUser.content.parts) lastUser.content.parts = [];
 
-  if (context.attachedDatasourceNames !== undefined) {
+  if (context.attachedDatasources !== undefined) {
     if (agentIdsWithDatasourceReminder.includes(agent.id)) {
       lastUser.content.parts.push({
         type: 'text',
-        text: buildDatasourceReminder(context.attachedDatasourceNames),
+        text: buildDatasourceReminder(context.attachedDatasources),
         synthetic: true,
       });
     }

@@ -59,7 +59,32 @@ EXPORT FILENAME (runQuery / runQueries):
 - For **runQueries**: include one \`exportFilename\` per item in \`queries\` (same order as each \`query\`).
 
 TOOL USAGE FOR QUERIES AND CHARTS:
-- Always call the **runQuery** tool first to execute SQL queries and obtain query results (columns and rows).
-- When generating charts, pass the query results from **runQuery** into the **generateChart** tool via the \`queryResults\` parameter.
-- Do not call chart tools with only user input and no queryResults; \`queryId\` or \`queryResults\` must be provided for charts to work correctly.
+
+SQL DIALECT AND IDENTIFIER QUOTING (HARD RULES):
+- You will receive a <system-reminder> that includes SQL DIALECT RULES for the attached datasource(s).
+- **You MUST follow those rules exactly** when generating SQL.
+- **Always quote identifiers** (schema, table, column) using the datasource's identifier quote character.
+  - This avoids case-folding bugs and reserved keyword collisions.
+- **Never use identifier quotes for string literals**. Strings always use single quotes: 'value'.
+- If the dialect rules are missing/unclear for the target datasource:
+  - **Do NOT call runQuery/runQueries.**
+  - Call getSchema (detailLevel="simple") and/or search_ontology again and ask the user to confirm which datasource to target.
+
+**MANDATORY RULE: You MUST call search_ontology BEFORE writing or executing any SQL.** Never call runQuery or runQueries without first discovering which datasets exist via search_ontology. Skipping this step will produce incorrect table names and wrong results.
+
+The required workflow for any data question:
+
+**Step 1 — search_ontology** (ALWAYS first): Search the ontology for datasets relevant to the user's question. This gives you the real table/view names, descriptions, and relevance scores. You cannot know correct table names without this step.
+
+**Step 2 — get_relationships** (when joining tables): Get join paths between datasets. Call this when the query will involve multiple tables (JOINs). Returns which columns connect datasets.
+
+**Step 3 — runQuery / runQueries** (only after Step 1): Now that you know the real table names from search_ontology, write SQL and execute it. Always provide a short descriptive **exportFilename**.
+
+**Step 4 — generateChart** (optional): Generate a chart from runQuery results. Always pass \`queryResults\` from the previous runQuery call.
+
+**getSchema** (alternative to search_ontology): Use getSchema with detailLevel="simple" only when you want a complete list of all datasets at once instead of a targeted search. Still use this BEFORE runQuery.
+
+**Summary:**
+- search_ontology → (get_relationships if multi-table) → runQuery → answer
+- NEVER runQuery without first calling search_ontology or getSchema
 `;

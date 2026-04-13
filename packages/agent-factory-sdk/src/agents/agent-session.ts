@@ -2,7 +2,6 @@ import { type UIMessage, convertToModelMessages, validateUIMessages } from 'ai';
 import { getDefaultModel } from '../services/model-resolver';
 import { generateConversationTitle } from '../services/generate-conversation-title.service';
 import { MessagePersistenceService } from '../services/message-persistence.service';
-import { UsagePersistenceService } from '../services/usage-persistence.service';
 import type { Repositories } from '@qwery/domain/repositories';
 import type { TelemetryManager } from '@qwery/telemetry/otel';
 import { MessageRole } from '@qwery/domain/entities';
@@ -14,11 +13,15 @@ import { Registry } from '../tools/registry';
 import type { AskRequest, ToolContext, ToolMetadataInput } from '../tools/tool';
 import { insertReminders } from './insert-reminders';
 import { LLM } from '../llm/llm';
-import { Provider } from '../llm/provider';
 import { SystemPrompt } from '../llm/system';
 import { v4 as uuidv4 } from 'uuid';
-import { loadDatasources } from '../tools/datasource-loader';
-import type { Datasource } from '@qwery/domain/entities';
+import {
+  resolveModel,
+  resolveAgent,
+  loadAndFormatDatasources,
+  persistUsageResult,
+  persistMessageResult,
+} from './agent-orchestration';
 
 export type AgentSessionPromptInput = {
   conversationSlug: string;
@@ -278,24 +281,12 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     const shouldGenerateTitle =
       conversation.title === 'New Conversation' && generateTitle;
 
-    const agentInfo = Registry.agents.get(agentId);
-    if (!agentInfo) {
-      throw new Error(`Agent not found: ${agentId}`);
-    }
-
-    const datasources = await loadDatasources(
+    const agentInfo = resolveAgent(agentId);
+    const { providerModel, modelForRegistry } = resolveModel(model);
+    const { reminderContext } = await loadAndFormatDatasources(
       conversation.datasources ?? [],
       repositories.datasource,
     );
-
-    const providerModel =
-      typeof model === 'string'
-        ? Provider.getModelFromString(model)
-        : Provider.getDefaultModel();
-    const modelForRegistry = {
-      providerId: providerModel.providerID,
-      modelId: providerModel.id,
-    };
 
     const assistantMessageId = uuidv4();
     const pendingRealtimeChunks: Uint8Array[] = [];
@@ -374,9 +365,6 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       { mcpServerUrl, webSearch: input.webSearch },
     );
 
-    const reminderContext = {
-      attachedDatasourceNames: datasources.map((d: Datasource) => d.name),
-    };
     insertReminders({
       messages: msgs,
       agent: agentInfo,
@@ -471,22 +459,15 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
           toolExecutionByCallId,
         );
         const totalUsage = await result.totalUsage;
-        const usagePersistenceService = new UsagePersistenceService(
-          repositories.usage,
-          repositories.conversation,
-          repositories.project,
+
+        await persistUsageResult({
+          usage: totalUsage,
+          model,
+          userId: conversation.createdBy,
+          repositories,
           conversationSlug,
-        );
-        try {
-          await usagePersistenceService.persistUsage(
-            totalUsage,
-            model,
-            conversation.createdBy,
-          );
-        } catch (error) {
-          const log = await getLogger();
-          log.error('[AgentSession] Failed to persist usage:', error);
-        }
+          label: 'AgentSession',
+        });
 
         const lastAssistant = [...messagesWithToolExecution]
           .reverse()
@@ -517,39 +498,17 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
           };
         }
 
-        const persistence = new MessagePersistenceService(
-          repositories.message,
-          repositories.conversation,
+        await persistMessageResult({
+          messages: messagesWithToolExecution,
+          agentId,
+          model: {
+            modelID: providerModel.id,
+            providerID: providerModel.providerID,
+          },
+          repositories,
           conversationSlug,
-        );
-        try {
-          const persistResult = await persistence.persistMessages(
-            messagesWithToolExecution,
-            undefined,
-            {
-              defaultMetadata: {
-                agent: agentId,
-                model: {
-                  modelID: providerModel.id,
-                  providerID: providerModel.providerID,
-                },
-              },
-            },
-          );
-          if (persistResult.errors.length > 0) {
-            const log = await getLogger();
-            log.warn(
-              `[AgentSession] Assistant message persistence failed for ${conversationSlug}:`,
-              persistResult.errors.map((e) => e.message).join(', '),
-            );
-          }
-        } catch (error) {
-          const log = await getLogger();
-          log.warn(
-            `[AgentSession] Assistant message persistence threw for ${conversationSlug}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-        }
+          label: 'AgentSession',
+        });
       },
     });
 

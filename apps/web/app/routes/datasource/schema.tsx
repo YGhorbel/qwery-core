@@ -5,6 +5,8 @@ import { useGetDatasourceMetadata } from '~/lib/queries/use-get-datasource-metad
 import { GetDatasourceBySlugService } from '@qwery/domain/services';
 import { DomainException } from '@qwery/domain/exceptions';
 
+import { PipelineStatusCard } from './_components/pipeline-status-card';
+
 import type { Route } from './+types/schema';
 import { getRepositoriesForLoader } from '~/lib/loaders/create-repositories';
 
@@ -70,8 +72,11 @@ export default function Schema(props: Route.ComponentProps) {
   const storageKey = `datasource-schema-positions:${datasource.id ?? slug}`;
 
   return (
-    <div className="h-full w-full">
-      <SchemaGraph metadata={metadata} storageKey={storageKey} />
+    <div className="flex h-full w-full flex-col">
+      <PipelineStatusCard datasourceId={datasource.id} />
+      <div className="flex-1">
+        <SchemaGraph metadata={metadata} storageKey={storageKey} />
+      </div>
     </div>
   );
 }
