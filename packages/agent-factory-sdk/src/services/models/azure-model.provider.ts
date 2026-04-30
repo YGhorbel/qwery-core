@@ -23,7 +23,7 @@ export function createAzureModelProvider({
   const resolvedProvider: AzureOpenAIProvider =
     provider ??
     (Object.keys(azureOptions).length > 0
-      ? createAzure(azureOptions)
+      ? createAzure({ ...azureOptions })
       : defaultAzureProvider);
 
   return {
@@ -35,7 +35,7 @@ export function createAzureModelProvider({
         );
       }
 
-      return resolvedProvider(finalDeployment);
+      return resolvedProvider.chat(finalDeployment);
     },
   };
 }

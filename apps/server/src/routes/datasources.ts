@@ -18,6 +18,8 @@ import {
 import { Code } from '@qwery/domain/common';
 import { fetchWithSsrfProtection, SsrfBlockedError } from '../lib/ssrf-guard';
 import { checkRateLimit } from '../lib/rate-limit';
+import { invalidateSchemaCache } from '@qwery/agent-factory-sdk';
+import { triggerIfNeeded } from '@qwery/semantic-pipeline';
 
 const VALIDATE_URL_TIMEOUT_MS = 15_000;
 const VALIDATE_URL_MAX_BYTES = 5 * 1024 * 1024;
@@ -343,6 +345,8 @@ export function createDatasourcesRoutes(
       const body = await c.req.json();
       const useCase = new CreateDatasourceService(repos.datasource);
       const datasource = await useCase.execute(body);
+      void invalidateSchemaCache(datasource.id);
+      void triggerIfNeeded(datasource);
       return c.json(datasource, 201);
     } catch (error) {
       return handleDomainException(error);
@@ -362,6 +366,8 @@ export function createDatasourcesRoutes(
       const body = await c.req.json();
       const useCase = new UpdateDatasourceService(repos.datasource);
       const datasource = await useCase.execute({ ...body, id });
+      void invalidateSchemaCache(datasource.id);
+      void triggerIfNeeded(datasource);
       return c.json(datasource);
     } catch (error) {
       return handleDomainException(error);
@@ -380,9 +386,41 @@ export function createDatasourcesRoutes(
       const repos = await getRepositories();
       const useCase = new DeleteDatasourceService(repos.datasource);
       await useCase.execute(id);
+      void invalidateSchemaCache(id);
       return c.json({ success: true });
     } catch (error) {
       return handleDomainException(error);
+    }
+  });
+
+  app.post('/:datasourceId/validate-candidates', async (c) => {
+    const datasourceId = c.req.param('datasourceId');
+    const internalDbUrl = process.env.QWERY_INTERNAL_DATABASE_URL;
+    if (!internalDbUrl) {
+      return c.json({ error: 'semantic search not configured' }, 400);
+    }
+    try {
+      const { ArtifactPatcher } = await import(
+        '@qwery/semantic-pipeline/updater/artifact-patcher'
+      );
+      const { validateAndPromoteCandidates } = await import(
+        '@qwery/semantic-pipeline/updater/candidate-validator'
+      );
+      const { VectorStore, Embedder } = await import('@qwery/vector-store');
+      const storageDir = process.env.QWERY_STORAGE_DIR ?? 'qwery.db';
+      const patcher = new ArtifactPatcher(
+        storageDir,
+        new VectorStore(internalDbUrl),
+        new Embedder(),
+      );
+      const result = await validateAndPromoteCandidates(
+        datasourceId,
+        patcher,
+        storageDir,
+      );
+      return c.json(result);
+    } catch (err) {
+      return c.json({ error: String(err) }, 500);
     }
   });
 

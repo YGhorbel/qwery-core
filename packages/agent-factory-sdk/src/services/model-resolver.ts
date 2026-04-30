@@ -59,7 +59,6 @@ async function createProvider(
       return createAzureModelProvider({
         resourceName: requireEnv('AZURE_RESOURCE_NAME', 'Azure'),
         apiKey: requireEnv('AZURE_API_KEY', 'Azure'),
-        apiVersion: getEnv('AZURE_API_VERSION'),
         baseURL: getEnv('AZURE_OPENAI_BASE_URL'),
         deployment: getEnv('AZURE_OPENAI_DEPLOYMENT') ?? modelName,
       });
@@ -146,7 +145,7 @@ export async function resolveModel(
  * Model name is determined from provider-specific env vars (checks both regular and VITE_ prefixed):
  * - Azure: AZURE_OPENAI_DEPLOYMENT or VITE_AZURE_OPENAI_DEPLOYMENT (defaults to "gpt-5.2-chat")
  * - Ollama: OLLAMA_MODEL or VITE_OLLAMA_MODEL (defaults to "deepseek-r1:8b")
- * - Ollama Cloud: OLLAMA_MODEL or VITE_OLLAMA_MODEL (defaults to "minimax-m2.7")
+ * - Ollama Cloud: OLLAMA_MODEL or VITE_OLLAMA_MODEL (defaults to "ministral-3:8b-cloud")
  * - WebLLM: WEBLLM_MODEL or VITE_WEBLLM_MODEL (defaults to "Llama-3.1-8B-Instruct-q4f32_1-MLC")
  * - Transformer: TRANSFORMER_MODEL or VITE_TRANSFORMER_MODEL (defaults to "SmolLM2-360M-Instruct")
  * - Anthropic: ANTHROPIC_MODEL or VITE_ANTHROPIC_MODEL (defaults to "claude-3.5-sonnet")
@@ -172,7 +171,7 @@ export function getDefaultModel(): string {
       break;
     case 'ollama-cloud':
       modelName =
-        getEnv('OLLAMA_MODEL') || getEnv('VITE_OLLAMA_MODEL') || 'minimax-m2.7';
+        getEnv('OLLAMA_MODEL') || getEnv('VITE_OLLAMA_MODEL') || 'ministral-3:8b-cloud';
       break;
     case 'webllm':
       modelName =

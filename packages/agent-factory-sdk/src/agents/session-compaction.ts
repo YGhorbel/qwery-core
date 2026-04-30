@@ -268,7 +268,7 @@ export async function prune(input: PruneInput): Promise<void> {
 
   if (pruned <= PRUNE_MINIMUM) {
     const logger = await getLogger();
-    logger.info(
+    logger.debug(
       `[SessionCompaction] Prune skipped (below minimum): ${pruned} <= ${PRUNE_MINIMUM}`,
       {
         conversationSlug,

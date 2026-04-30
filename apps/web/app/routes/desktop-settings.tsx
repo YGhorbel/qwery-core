@@ -25,7 +25,6 @@ const KEY_GROUPS: { title: string; keys: KeyConfig[] }[] = [
       { id: 'AZURE_API_KEY', label: 'API Key', type: 'password' },
       { id: 'AZURE_RESOURCE_NAME', label: 'Resource Name' },
       { id: 'AZURE_OPENAI_DEPLOYMENT', label: 'Deployment' },
-      { id: 'AZURE_API_VERSION', label: 'API Version' },
       { id: 'AZURE_OPENAI_BASE_URL', label: 'Base URL' },
     ],
   },

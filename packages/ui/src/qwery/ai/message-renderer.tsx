@@ -1,7 +1,7 @@
 import { UIMessage } from 'ai';
 import { ChatStatus } from 'ai';
 import { isChatStreaming } from './utils/chat-status';
-import { memo } from 'react';
+import { Fragment, memo } from 'react';
 import { normalizeUIRole } from '@qwery/shared/message-role-utils';
 import {
   TaskPart,
@@ -15,6 +15,27 @@ import {
 import { ToolWithTaskDelimiter } from './tool-with-task-delimiter';
 import { ToolUIPart as AIToolUIPart } from 'ai';
 import { getLastTodoPartIndex } from './utils/todo-parts';
+
+function parseThinkTags(
+  text: string,
+  isPartStreaming: boolean,
+): { thinking: string | null; isThinkingStreaming: boolean; answer: string } {
+  if (!text.startsWith('<think>')) {
+    return { thinking: null, isThinkingStreaming: false, answer: text };
+  }
+  const closeIdx = text.indexOf('</think>');
+  if (closeIdx === -1) {
+    // Still inside the think block — streaming
+    return {
+      thinking: text.slice('<think>'.length),
+      isThinkingStreaming: isPartStreaming,
+      answer: '',
+    };
+  }
+  const thinking = text.slice('<think>'.length, closeIdx).trim();
+  const answer = text.slice(closeIdx + '</think>'.length).replace(/^\n+/, '');
+  return { thinking, isThinkingStreaming: false, answer };
+}
 
 function getExecutionTimeMs(
   part: AIToolUIPart,
@@ -106,11 +127,50 @@ function MessageRendererComponent({
         }
 
         switch (part.type) {
-          case 'text':
+          case 'text': {
+            const textPart = part as { type: 'text'; text: string };
+            const isThisPartStreaming =
+              isChatStreaming(status) &&
+              isLastMessage &&
+              i === message.parts.length - 1;
+            const { thinking, isThinkingStreaming, answer } = parseThinkTags(
+              textPart.text,
+              isThisPartStreaming,
+            );
+            if (thinking !== null) {
+              return (
+                <Fragment key={`${message.id}-${i}`}>
+                  <ReasoningPart
+                    part={{ type: 'reasoning', text: thinking }}
+                    messageId={message.id}
+                    index={i}
+                    isStreaming={isThinkingStreaming}
+                    sendMessage={sendMessage}
+                    messages={messages}
+                    onDatasourceNameClick={onDatasourceNameClick}
+                    getDatasourceTooltip={getDatasourceTooltip}
+                  />
+                  {answer ? (
+                    <TextPart
+                      part={{ type: 'text', text: answer }}
+                      messageId={message.id}
+                      messageRole={message.role}
+                      index={i}
+                      isLastMessage={isLastMessage && i === message.parts.length - 1}
+                      onRegenerate={onRegenerate}
+                      sendMessage={sendMessage}
+                      messages={messages}
+                      onDatasourceNameClick={onDatasourceNameClick}
+                      getDatasourceTooltip={getDatasourceTooltip}
+                    />
+                  ) : null}
+                </Fragment>
+              );
+            }
             return (
               <TextPart
                 key={`${message.id}-${i}`}
-                part={part as { type: 'text'; text: string }}
+                part={textPart}
                 messageId={message.id}
                 messageRole={message.role}
                 index={i}
@@ -122,6 +182,7 @@ function MessageRendererComponent({
                 getDatasourceTooltip={getDatasourceTooltip}
               />
             );
+          }
           case 'reasoning':
             return (
               <ReasoningPart

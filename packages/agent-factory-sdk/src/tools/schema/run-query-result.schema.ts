@@ -26,6 +26,8 @@ export const RunQueryResultSchema = z.object({
   sqlQuery: z.string(),
   executed: z.boolean(),
   exportFilename: ExportFilenameSchema,
+  correctionApplied: z.boolean().optional(),
+  emptyResult: z.boolean().optional(),
 });
 
 export type RunQueryResult = z.infer<typeof RunQueryResultSchema>;

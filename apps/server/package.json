@@ -14,7 +14,8 @@
     "format:fix": "prettier --write \"**/*.ts\"",
     "test": "vitest run --logHeapUsage --coverage --silent",
     "test:watch": "vitest",
-    "mcp": "npx @modelcontextprotocol/inspector"
+    "mcp": "npx @modelcontextprotocol/inspector",
+    "benchmark": "bun src/cli/benchmark.ts"
   },
   "prettier": "@qwery/prettier-config",
   "dependencies": {
@@ -27,8 +28,10 @@
     "@qwery/extensions-loader": "workspace:*",
     "@qwery/extensions-sdk": "workspace:*",
     "@qwery/repository-file": "workspace:*",
+    "@qwery/semantic-pipeline": "workspace:*",
     "@qwery/shared": "workspace:*",
     "@qwery/telemetry": "workspace:*",
+    "@qwery/vector-store": "workspace:*",
     "class-transformer": "^0.5.1",
     "dssrf": "^1.0.2",
     "hono": "^4.10.7",

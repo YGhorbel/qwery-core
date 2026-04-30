@@ -19,8 +19,17 @@ import {
   createNotFoundErrorResponse,
 } from '../lib/http-utils';
 
-const TUI_PROJECT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const TUI_TASK_ID = '550e8400-e29b-41d4-a716-446655440001';
+
+async function resolveProjectId(
+  repositories: Repositories,
+  projectId?: string,
+): Promise<string> {
+  if (projectId) return projectId;
+  const projects = await repositories.project.findAll();
+  if (projects.length > 0) return projects[0]!.id;
+  throw new Error('No project found — initialize workspace first');
+}
 
 const createBodySchema = z.object({
   title: z.string().optional().default('New Conversation'),
@@ -58,11 +67,12 @@ export function createConversationsRoutes() {
       const body = c.req.valid('json');
       const repositories = await getRepositories();
 
+      const projectId = await resolveProjectId(repositories, body.projectId);
       const useCase = new CreateConversationService(repositories.conversation);
       const conversation = await useCase.execute({
         title: body.title,
         seedMessage: body.seedMessage,
-        projectId: body.projectId ?? TUI_PROJECT_ID,
+        projectId,
         taskId: body.taskId ?? TUI_TASK_ID,
         datasources: body.datasources ?? [],
         createdBy: body.createdBy ?? 'tui',

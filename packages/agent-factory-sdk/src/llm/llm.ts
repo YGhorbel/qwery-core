@@ -58,6 +58,21 @@ export const LLM = {
         : (input.model ?? Provider.getDefaultModel());
     const language = await Provider.getLanguage(model);
 
+    // Cap tools for Ollama — its API rejects requests with > 10 tools
+    let effectiveTools = input.tools;
+    if (
+      effectiveTools &&
+      Object.keys(effectiveTools).length > 10 &&
+      (model.api.npm === 'ai-sdk-ollama' ||
+        (typeof model.api.url === 'string' && model.api.url.includes('ollama.com')))
+    ) {
+      const originalCount = Object.keys(effectiveTools).length;
+      effectiveTools = Object.fromEntries(Object.entries(effectiveTools).slice(0, 10));
+      console.warn(
+        `[LLM] Ollama tools cap applied: ${originalCount} → 10`,
+      );
+    }
+
     let system: string | undefined = input.system ?? input.systemPrompt;
     if (system === undefined) {
       const parts = [
@@ -81,14 +96,14 @@ export const LLM = {
     const streamParams = {
       model: language,
       ...(system !== undefined && system !== '' ? { system } : {}),
-      ...(input.tools !== undefined ? { tools: input.tools } : {}),
+      ...(effectiveTools !== undefined ? { tools: effectiveTools } : {}),
       abortSignal: input.abortSignal,
       maxRetries: input.maxRetries,
       temperature: input.temperature,
       ...(input.maxOutputTokens !== undefined
         ? { maxOutputTokens: input.maxOutputTokens }
         : {}),
-      ...(input.tools !== undefined && Object.keys(input.tools).length > 0
+      ...(effectiveTools !== undefined && Object.keys(effectiveTools).length > 0
         ? { stopWhen: stepCountIs(input.maxSteps ?? 5) }
         : {}),
       ...(input.onFinish !== undefined ? { onFinish: input.onFinish } : {}),

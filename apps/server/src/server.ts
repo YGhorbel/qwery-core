@@ -15,7 +15,9 @@ import { createMessagesRoutes } from './routes/messages';
 import { createFeedbackRoutes } from './routes/feedback';
 import { createNotebooksRoutes } from './routes/notebooks';
 import { createNotebookQueryRoutes } from './routes/notebook-query';
+import { createBenchmarkRoutes } from './routes/benchmark';
 import { createUsageRoutes } from './routes/usage';
+import { createTokenRoutes } from './routes/tokens';
 import { createInitRoutes } from './routes/init';
 import { createPosthogProxyRoutes } from './routes/posthog-proxy';
 import { handleMcpRequest } from './lib/mcp-handler';
@@ -79,7 +81,9 @@ export function createApp() {
   api.route('/feedback', createFeedbackRoutes(getRepositories));
   api.route('/notebooks', createNotebooksRoutes(getRepositories));
   api.route('/notebook/query', createNotebookQueryRoutes(getRepositories));
+  api.route('/benchmark', createBenchmarkRoutes(getRepositories));
   api.route('/usage', createUsageRoutes(getRepositories));
+  api.route('/tokens', createTokenRoutes());
   app.route('/api', api);
 
   app.get('/api/openapi.json', (c) => c.json(getOpenAPISpec()));

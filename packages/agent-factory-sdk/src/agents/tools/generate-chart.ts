@@ -143,11 +143,20 @@ export async function generateChart(input: GenerateChartInput): Promise<{
     template.config,
   );
 
+  const FALLBACK_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
+  const sanitizedColors = (template.config.colors ?? []).filter((c: string) =>
+    /^#[0-9A-Fa-f]{6}$/.test(c),
+  );
+  const safeConfig = {
+    ...template.config,
+    colors: sanitizedColors.length > 0 ? sanitizedColors : FALLBACK_COLORS,
+  };
+
   const chartConfig = ChartConfigSchema.parse({
     chartType: template.chartType,
     title: template.title,
     data,
-    config: template.config,
+    config: safeConfig,
   });
 
   const [firstRow] = chartConfig.data;

@@ -7,6 +7,7 @@ import { AskAgent, QueryAgent, CompactionAgent, SummaryAgent } from '../agents';
 import { TodoWriteTool, TodoReadTool } from './todo';
 import { WebFetchTool } from './webfetch';
 import { GetSchemaTool } from './get-schema';
+import { GetSemanticContextTool } from './get-semantic-context';
 import { RunQueryTool } from './run-query';
 import { RunQueriesTool } from './run-queries';
 import { SelectChartTypeTool } from './select-chart-type-tool';
@@ -22,6 +23,7 @@ const TASK_COMPLETING_TOOL_IDS = new Set([
   'runQuery',
   'runQueries',
   'getSchema',
+  'getSemanticContext',
   'generateChart',
   'selectChartType',
 ]);
@@ -68,6 +70,7 @@ function registerTools() {
   tools.set(TodoReadTool.id, TodoReadTool as unknown as ToolInfo);
   tools.set(WebFetchTool.id, WebFetchTool as unknown as ToolInfo);
   //tools.set(TestConnectionTool.id, TestConnectionTool as unknown as ToolInfo);
+  tools.set(GetSemanticContextTool.id, GetSemanticContextTool as unknown as ToolInfo);
   tools.set(GetSchemaTool.id, GetSchemaTool as unknown as ToolInfo);
   tools.set(RunQueryTool.id, RunQueryTool as unknown as ToolInfo);
   tools.set(RunQueriesTool.id, RunQueriesTool as unknown as ToolInfo);

@@ -3,6 +3,9 @@ export * from './domain';
 export * from './services';
 export * from './agents';
 
+// Schema cache utilities
+export { invalidateSchemaCache } from './tools/get-schema';
+
 // Export tool types
 export * from './agents/tools/types';
 export * from './agents/tools/inferred-types';
@@ -20,6 +23,9 @@ export {
   type GetMcpToolsOptions,
   type GetMcpToolsResult,
 } from './mcp/index.js';
+
+// Model router (multi-model routing for sub-agent tasks)
+export { routeModel, extractR1Response, type AgentTask } from './llm/model-router.js';
 
 // Reexport AI SDK
 export type { UIMessage } from 'ai';
@@ -44,9 +50,29 @@ const baseModels = [
     value: 'anthropic/claude-sonnet-4-5-20250929',
   },
   {
+    name: 'Ollama Cloud • DeepSeek V4 Flash',
+    shortName: 'DeepSeek V4 Flash',
+    value: 'ollama-cloud/deepseek-v4-flash:cloud',
+  },
+  {
+    name: 'Ollama Cloud • DeepSeek V4 Pro',
+    shortName: 'DeepSeek V4 Pro',
+    value: 'ollama-cloud/deepseek-v4-pro:cloud',
+  },
+  {
+    name: 'Ollama Cloud • DeepSeek V3.2',
+    shortName: 'DeepSeek V3.2',
+    value: 'ollama-cloud/deepseek-v3.2',
+  },
+  {
     name: 'Ollama Cloud • DeepSeek V3.1 671B',
     shortName: 'DeepSeek V3.1 671B',
     value: 'ollama-cloud/deepseek-v3.1:671b',
+  },
+  {
+    name: 'Ollama Cloud • Qwen3 Coder 480B',
+    shortName: 'Qwen3 Coder 480B',
+    value: 'ollama-cloud/qwen3-coder:480b',
   },
   {
     name: 'Ollama Cloud • Gemini 3 Flash (preview)',

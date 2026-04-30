@@ -1,0 +1,40 @@
+{
+  "name": "@qwery/semantic-pipeline",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./updater/artifact-patcher": "./src/updater/artifact-patcher.ts",
+    "./updater/update-orchestrator": "./src/updater/update-orchestrator.ts",
+    "./updater/artifact-proposals": "./src/updater/artifact-proposals.ts",
+    "./updater/candidate-validator": "./src/updater/candidate-validator.ts",
+    "./agents/enrichment-agent": "./src/agents/09-enrichment-agent.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "git clean -xdf .turbo node_modules dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --logHeapUsage --coverage --silent",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@qwery/agent-factory-sdk": "workspace:*",
+    "@qwery/domain": "workspace:*",
+    "@qwery/extensions-loader": "workspace:*",
+    "@qwery/extensions-sdk": "workspace:*",
+    "@qwery/shared": "workspace:*",
+    "@qwery/vector-store": "workspace:*",
+    "ai": "catalog:",
+    "openai": "^4.103.0",
+    "yaml": "^2.4.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@qwery/tsconfig": "workspace:*",
+    "@vitest/coverage-istanbul": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

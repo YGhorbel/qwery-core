@@ -3450,7 +3450,7 @@
     "env": [
       "OLLAMA_API_KEY"
     ],
-    "npm": "@ai-sdk/openai-compatible",
+    "npm": "@ai-sdk/openai",
     "api": "https://ollama.com/v1",
     "name": "Ollama Cloud",
     "doc": "https://docs.ollama.com/cloud",
@@ -3623,6 +3623,168 @@
           "output": 262144
         }
       },
+      "kimi-k2.6": {
+        "id": "kimi-k2.6",
+        "name": "kimi-k2.6",
+        "family": "kimi",
+        "attachment": true,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 262144,
+          "output": 262144
+        }
+      },
+      "glm-4.7": {
+        "id": "glm-4.7",
+        "name": "glm-4.7",
+        "family": "glm",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-07-01",
+        "last_updated": "2025-07-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 16384
+        }
+      },
+      "glm-5.1": {
+        "id": "glm-5.1",
+        "name": "glm-5.1",
+        "family": "glm",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "qwen3-coder-next": {
+        "id": "qwen3-coder-next",
+        "name": "qwen3-coder-next",
+        "family": "qwen",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "devstral-small-2:24b-cloud": {
+        "id": "devstral-small-2:24b-cloud",
+        "name": "devstral-small-2:24b-cloud",
+        "family": "devstral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 262144,
+          "output": 32768
+        }
+      },
+      "nemotron-3-nano:30b-cloud": {
+        "id": "nemotron-3-nano:30b-cloud",
+        "name": "nemotron-3-nano:30b-cloud",
+        "family": "nemotron",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 1048576,
+          "output": 32768
+        }
+      },
+      "ministral-3:8b-cloud": {
+        "id": "ministral-3:8b-cloud",
+        "name": "ministral-3:8b-cloud",
+        "family": "ministral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 262144,
+          "output": 32768
+        }
+      },
       "minimax-m2.5": {
         "id": "minimax-m2.5",
         "name": "minimax-m2.5",
@@ -3742,6 +3904,292 @@
         "limit": {
           "context": 262144,
           "output": 81920
+        }
+      },
+      "deepseek-v3.2": {
+        "id": "deepseek-v3.2",
+        "name": "deepseek-v3.2",
+        "family": "deepseek",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 163840,
+          "output": 163840
+        }
+      },
+      "qwen3-coder:480b": {
+        "id": "qwen3-coder:480b",
+        "name": "qwen3-coder:480b",
+        "family": "qwen",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-07-22",
+        "last_updated": "2026-04-01",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "magistral:latest": {
+        "id": "magistral:latest",
+        "name": "magistral:latest",
+        "family": "mistral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-06-10",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "kimi-k2-thinking:cloud": {
+        "id": "kimi-k2-thinking:cloud",
+        "name": "kimi-k2-thinking:cloud",
+        "family": "kimi",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-07-01",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "devstral-small-2:24b": {
+        "id": "devstral-small-2:24b",
+        "name": "devstral-small-2:24b",
+        "family": "devstral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-04-01",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 262144,
+          "output": 32768
+        }
+      },
+      "devstral:latest": {
+        "id": "devstral:latest",
+        "name": "devstral:latest",
+        "family": "devstral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-05-20",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 32768,
+          "output": 32768
+        }
+      },
+      "gpt-oss:latest": {
+        "id": "gpt-oss:latest",
+        "name": "gpt-oss:latest",
+        "family": "gpt-oss",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-05-20",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 200000,
+          "output": 32768
+        }
+      },
+      "deepseek-v4-flash:cloud": {
+        "id": "deepseek-v4-flash:cloud",
+        "name": "deepseek-v4-flash:cloud",
+        "family": "deepseek",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-01-01",
+        "last_updated": "2026-04-28",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 1048576,
+          "output": 65536
+        }
+      },
+      "deepseek-v4-pro:cloud": {
+        "id": "deepseek-v4-pro:cloud",
+        "name": "deepseek-v4-pro:cloud",
+        "family": "deepseek",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-01-01",
+        "last_updated": "2026-04-28",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 1048576,
+          "output": 65536
+        }
+      }
+    }
+  },
+  "ollama-local": {
+    "id": "ollama-local",
+    "env": [],
+    "npm": "ai-sdk-ollama",
+    "api": "http://localhost:11434",
+    "name": "Ollama Local",
+    "doc": "https://ollama.com",
+    "models": {
+      "devstral:latest": {
+        "id": "devstral:latest",
+        "name": "devstral:latest",
+        "family": "devstral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2026-01-01",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 32768,
+          "output": 32768
+        }
+      },
+      "gpt-oss:latest": {
+        "id": "gpt-oss:latest",
+        "name": "gpt-oss:latest",
+        "family": "gpt-oss",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-05-20",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 200000,
+          "output": 32768
+        }
+      },
+      "magistral:latest": {
+        "id": "magistral:latest",
+        "name": "magistral:latest",
+        "family": "mistral",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "release_date": "2025-12-01",
+        "last_updated": "2026-04-23",
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": true,
+        "limit": {
+          "context": 131072,
+          "output": 32768
         }
       }
     }

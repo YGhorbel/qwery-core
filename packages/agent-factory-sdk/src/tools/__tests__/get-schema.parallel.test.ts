@@ -49,6 +49,8 @@ describe('GetSchemaTool - Parallelism Verification', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Disable schema cache so metadata() is always called through to the driver
+    process.env.QWERY_SCHEMA_CACHE = 'false';
 
     mockRepositories = {
       datasource: {

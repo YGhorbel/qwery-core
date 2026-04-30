@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import type {
   DatasourceMetadata,
   Table,
@@ -16,7 +18,63 @@ import { getLogger } from '@qwery/shared/logger';
 import { Repositories } from '@qwery/domain/repositories';
 import { TransformMetadataToSimpleSchemaService } from '@qwery/domain/services';
 
-const DESCRIPTION = `Get schema information (columns, data types) for attached datasource(s) using their native drivers.
+const SCHEMA_CACHE_FILENAME = 'schema.json';
+
+function getSchemaCachePath(datasourceId: string): string {
+  const storageDir = process.env.QWERY_STORAGE_DIR ?? 'qwery.db';
+  return path.join(storageDir, 'datasources', datasourceId, SCHEMA_CACHE_FILENAME);
+}
+
+async function readSchemaCache(
+  datasourceId: string,
+): Promise<DatasourceMetadata | null> {
+  if (process.env.QWERY_SCHEMA_CACHE === 'false') return null;
+  const cachePath = getSchemaCachePath(datasourceId);
+  try {
+    const raw = await fs.readFile(cachePath, 'utf-8');
+    const { metadata, cachedAt } = JSON.parse(raw) as {
+      metadata: DatasourceMetadata;
+      cachedAt: number;
+    };
+    const ttlHours = Number(process.env.QWERY_SCHEMA_CACHE_TTL_HOURS ?? 24);
+    if (Date.now() - cachedAt < ttlHours * 3_600_000) {
+      return metadata;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeSchemaCache(
+  datasourceId: string,
+  metadata: DatasourceMetadata,
+): Promise<void> {
+  if (process.env.QWERY_SCHEMA_CACHE === 'false') return;
+  const cachePath = getSchemaCachePath(datasourceId);
+  try {
+    await fs.mkdir(path.dirname(cachePath), { recursive: true });
+    await fs.writeFile(
+      cachePath,
+      JSON.stringify({ metadata, cachedAt: Date.now() }),
+      'utf-8',
+    );
+  } catch {
+    // Cache write failure is non-fatal
+  }
+}
+
+export async function invalidateSchemaCache(datasourceId: string): Promise<void> {
+  const cachePath = getSchemaCachePath(datasourceId);
+  try {
+    await fs.rm(cachePath, { force: true });
+  } catch {
+    // Ignore
+  }
+}
+
+const DESCRIPTION = `FALLBACK ONLY — only call this if getSemanticContext returned { available: false }.
+Get raw schema information (columns, data types) for attached datasource(s) using their native drivers.
 Use detailLevel="simple" (default) to return only tables and column types (token efficient).
 Use detailLevel="full" only when you need complete driver metadata. When multiple datasources are attached, returns merged schema for all.`;
 
@@ -120,11 +178,21 @@ export const GetSchemaTool = Tool.define('getSchema', {
       attachedDatasources: string[];
     };
 
+    // Block redundant getSchema calls when semantic context already resolved fields.
+    const resolvedFields = (ctx.extra as Record<string, unknown>).lastResolvedFields as unknown[] | undefined;
+    if (resolvedFields && resolvedFields.length > 0) {
+      logger.warn('[GetSchemaTool] Blocked — getSemanticContext already resolved fields. Use those fields directly.');
+      return {
+        blocked: true,
+        reason: 'getSemanticContext already returned fields for this datasource. Do NOT call getSchema — use the fields from getSemanticContext verbatim and call runQuery immediately.',
+      };
+    }
+
     if (!attachedDatasources?.length) {
       throw new Error('No datasources attached');
     }
 
-    logger.debug('[GetSchemaTool] Tool execution:', { attachedDatasources });
+    logger.info('[GetSchemaTool] Tool execution:', { attachedDatasources });
 
     const schemaErrors: Array<{
       datasourceId: string;
@@ -187,20 +255,36 @@ export const GetSchemaTool = Tool.define('getSchema', {
               };
             }
 
-            const instance = await getDriverInstance(nodeDriver, {
-              config: normalizeDatasourceConfig(datasource.config),
-            });
+            const cached = await readSchemaCache(datasourceId);
 
-            const metadata = await instance.metadata();
-            if (typeof instance.close === 'function') {
-              const closeResult = instance.close();
-              if (
-                closeResult &&
-                typeof (closeResult as Promise<unknown>).catch === 'function'
-              ) {
-                void (closeResult as Promise<unknown>).catch(() => {});
+            let metadata: DatasourceMetadata;
+            if (cached) {
+              logger.info(
+                `[GetSchemaTool] Cache hit for datasource ${datasourceId}`,
+              );
+              metadata = cached;
+            } else {
+              logger.info(
+                `[GetSchemaTool] Cache miss for datasource ${datasourceId} — fetching live schema`,
+              );
+              const instance = await getDriverInstance(nodeDriver, {
+                config: normalizeDatasourceConfig(datasource.config),
+              });
+
+              metadata = await instance.metadata();
+              await writeSchemaCache(datasourceId, metadata);
+
+              if (typeof instance.close === 'function') {
+                const closeResult = instance.close();
+                if (
+                  closeResult &&
+                  typeof (closeResult as Promise<unknown>).catch === 'function'
+                ) {
+                  void (closeResult as Promise<unknown>).catch(() => {});
+                }
               }
             }
+
             return {
               datasourceId,
               datasource,

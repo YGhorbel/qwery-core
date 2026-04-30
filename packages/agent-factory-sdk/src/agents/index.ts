@@ -3,7 +3,14 @@ export * from './ask-agent';
 export * from './query-agent';
 export * from './compaction-agent';
 export * from './summary-agent';
-export { prompt, loop, type AgentSessionPromptInput } from './agent-session';
+export {
+  prompt,
+  loop,
+  setPostQueryHook,
+  setEnrichmentAgent,
+  getEnrichmentAgent,
+  type AgentSessionPromptInput,
+} from './agent-session';
 export {
   SessionCompaction,
   isOverflow,

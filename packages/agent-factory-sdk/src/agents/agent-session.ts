@@ -19,6 +19,92 @@ import { SystemPrompt } from '../llm/system';
 import { v4 as uuidv4 } from 'uuid';
 import { loadDatasources } from '../tools/datasource-loader';
 import type { Datasource } from '@qwery/domain/entities';
+import { buildDatasourceSystemContext } from '../context/datasource-prompt-builder.js';
+import type { TraceStore, ErrorFixStore, TribalStore, TokenStore } from '@qwery/vector-store';
+
+// Lazy singleton — created once per process when QWERY_INTERNAL_DATABASE_URL is set
+let _traceStore: TraceStore | null = null;
+async function getTraceStore(): Promise<TraceStore | null> {
+  const url = process.env.QWERY_INTERNAL_DATABASE_URL;
+  if (!url) return null;
+  if (_traceStore) return _traceStore;
+  const { TraceStore: TS } = await import('@qwery/vector-store');
+  _traceStore = new TS(url);
+  await _traceStore.ensureSchema().catch(() => null);
+  return _traceStore;
+}
+
+let _errorFixStore: ErrorFixStore | null = null;
+async function getErrorFixStore(): Promise<ErrorFixStore | null> {
+  const url = process.env.QWERY_INTERNAL_DATABASE_URL;
+  if (!url) return null;
+  if (_errorFixStore) return _errorFixStore;
+  const { ErrorFixStore: EFS } = await import('@qwery/vector-store');
+  _errorFixStore = new EFS(url);
+  await _errorFixStore.ensureSchema().then(
+    () => console.info('[ErrorFixStore] ready — error_fix_pairs table ensured'),
+    (err: unknown) => console.warn('[ErrorFixStore] schema init failed:', err),
+  );
+  return _errorFixStore;
+}
+
+let _tribalStore: TribalStore | null = null;
+async function getTribalStore(): Promise<TribalStore | null> {
+  const url = process.env.QWERY_INTERNAL_DATABASE_URL;
+  if (!url) return null;
+  if (_tribalStore) return _tribalStore;
+  const { TribalStore: TS } = await import('@qwery/vector-store');
+  _tribalStore = new TS(url);
+  await _tribalStore.ensureSchema().then(
+    () => console.info('[TribalStore] ready — tribal_rules table ensured'),
+    (err: unknown) => console.warn('[TribalStore] schema init failed:', err),
+  );
+  return _tribalStore;
+}
+
+let _tokenStore: TokenStore | null = null;
+async function getTokenStore(): Promise<TokenStore | null> {
+  const url = process.env.QWERY_INTERNAL_DATABASE_URL;
+  if (!url) return null;
+  if (_tokenStore) return _tokenStore;
+  const { TokenStore: TKS } = await import('@qwery/vector-store');
+  _tokenStore = new TKS(url);
+  await _tokenStore.ensureSchema().then(
+    () => console.info('[TokenStore] ready — token_usage table ensured'),
+    (err: unknown) => console.warn('[TokenStore] schema init failed:', err),
+  );
+  return _tokenStore;
+}
+
+// Post-query hook — set from server layer to avoid circular dep with semantic-pipeline
+type PostQueryHook = (
+  datasourceId: string,
+  correctionTrace: Record<string, unknown>,
+  fieldsUsed: Array<{ field_id: string; label: string; sql: string }>,
+) => void;
+let _postQueryHook: PostQueryHook | null = null;
+export function setPostQueryHook(hook: PostQueryHook): void {
+  _postQueryHook = hook;
+}
+
+// Enrichment agent interface — injected from server layer to avoid circular dep
+type EnrichmentAgentLike = {
+  analyse(input: {
+    datasourceId: string;
+    question: string;
+    sqlFinal: string;
+    fieldsUsed: Array<{ field_id: string; label: string; sql: string }>;
+    queryPlan: { intent: string; cotPlan?: string; complexity: number };
+    correctionTrace?: Record<string, unknown> | null;
+  }): Promise<void>;
+};
+let _enrichmentAgent: EnrichmentAgentLike | null = null;
+export function setEnrichmentAgent(agent: EnrichmentAgentLike): void {
+  _enrichmentAgent = agent;
+}
+export function getEnrichmentAgent(): EnrichmentAgentLike | null {
+  return _enrichmentAgent;
+}
 
 export type AgentSessionPromptInput = {
   conversationSlug: string;
@@ -41,6 +127,12 @@ export type AgentSessionPromptInput = {
   }) => void | Promise<void>;
   maxSteps?: number;
   mcpServerUrl?: string;
+  /**
+   * When true: close the SSE stream immediately after the first runQuery /
+   * runQueries tool result, aborting the narration LLM step.
+   * Set by the chat route when the request carries X-Benchmark-Mode: true.
+   */
+  benchmarkMode?: boolean;
 };
 
 const DEFAULT_AGENT_ID = 'query';
@@ -149,6 +241,74 @@ function withToolExecutionStats(
   });
 }
 
+/**
+ * Benchmark early-exit stream wrapper.
+ *
+ * Passes all bytes through unchanged. As soon as an `a:` tool-result line
+ * for runQuery or runQueries is detected (i.e. the SQL has been executed),
+ * it:
+ *   1. Aborts the LLM stream so the narration step never starts.
+ *   2. Appends `data: [DONE]` and closes the response body.
+ *
+ * Normal (non-benchmark) requests are never wrapped here.
+ */
+function wrapBenchmarkEarlyExit(
+  source: ReadableStream<Uint8Array>,
+  abort: AbortController,
+): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = source.getReader();
+      const enc = new TextEncoder();
+      const dec = new TextDecoder();
+      let buf = '';
+      let exited = false;
+      try {
+        while (!exited) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+          buf += dec.decode(value, { stream: true });
+          let from = 0;
+          let nl: number;
+          while ((nl = buf.indexOf('\n', from)) !== -1) {
+            const line = buf.slice(from, nl).trim();
+            from = nl + 1;
+            if (line.startsWith('a:')) {
+              try {
+                const parsed = JSON.parse(line.slice(2)) as { result?: unknown };
+                const r = parsed.result as Record<string, unknown> | undefined;
+                if (
+                  r &&
+                  ((typeof r.sqlQuery === 'string' && r.sqlQuery) ||
+                    (Array.isArray(r.results) && r.results.length > 0))
+                ) {
+                  abort.abort();
+                  controller.enqueue(enc.encode('\ndata: [DONE]\n\n'));
+                  exited = true;
+                  break;
+                }
+              } catch {
+                /* not a valid runQuery result line */
+              }
+            }
+          }
+          if (!exited) buf = buf.slice(from);
+        }
+      } catch {
+        /* abort-triggered read errors are expected in benchmark mode */
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {}
+      }
+      try {
+        controller.close();
+      } catch {}
+    },
+  });
+}
+
 /** One turn: loop with Messages.stream, steps, then return SSE Response. */
 export async function loop(input: AgentSessionPromptInput): Promise<Response> {
   const logger = await getLogger();
@@ -164,6 +324,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     onToolMetadata,
     maxSteps: inputMaxSteps,
     mcpServerUrl,
+    benchmarkMode = false,
   } = input;
   const agentId = inputAgentId ?? DEFAULT_AGENT_ID;
 
@@ -185,6 +346,8 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
   let step = 0;
   let responseToReturn: Response | null = null;
   const abortController = new AbortController();
+  // Cache datasource context per datasource_id — built once per session turn
+  const datasourceContextCache = new Map<string, string>();
 
   while (true) {
     const msgs = await filterCompacted(messagesApi.stream(conversationId));
@@ -333,6 +496,25 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       })}\n\n`;
       pendingRealtimeChunks.push(encoder.encode(realtimeStatLine));
     };
+    // Lazy-initialize intelligence stores (fire-and-forget, safe to fail)
+    const [errorFixStore, tribalStore] = await Promise.all([
+      getErrorFixStore().catch(() => null),
+      getTribalStore().catch(() => null),
+    ]);
+    // TokenStore is initialized lazily on first session (fire-and-forget)
+    void getTokenStore().catch(() => null);
+
+    // Shared mutable extra — persists mutations across all tool calls this turn
+    // (e.g. getSemanticContext stores queryPlan, runQuery reads it)
+    const sharedExtra: Record<string, unknown> = {
+      repositories,
+      conversationId,
+      attachedDatasources: input.datasources,
+      lastRunQueryResult: { current: null },
+      errorFixStore,
+      tribalStore,
+    };
+
     const getContext = (options: {
       toolCallId?: string;
       abortSignal?: AbortSignal;
@@ -342,11 +524,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       messageId: assistantMessageId,
       callId: options.toolCallId,
       abort: options.abortSignal ?? abortController.signal,
-      extra: {
-        repositories,
-        conversationId,
-        attachedDatasources: input.datasources,
-      },
+      extra: sharedExtra,
       messages: msgs,
       ask: async (req: AskRequest) => {
         await onAsk?.(req);
@@ -415,13 +593,40 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
         ? `${systemPromptForLlm}\n\nSUGGESTIONS - Capabilities: When using {{suggestion: ...}}, only suggest actions you can perform with your tools: ${capabilityIds.join(', ')}. Do not suggest CSV/PDF export, file download, or other actions you cannot perform.`
         : systemPromptForLlm;
 
+    // Build datasource-aware system context once per session (cached by datasource_id)
+    let datasourceSystemContext = '';
+    const firstDatasourceId = input.datasources?.[0];
+    if (firstDatasourceId) {
+      const cached = datasourceContextCache.get(firstDatasourceId);
+      if (cached !== undefined) {
+        datasourceSystemContext = cached;
+      } else {
+        const firstDatasource = datasources.find((d: Datasource) => d.id === firstDatasourceId);
+        const dsName = firstDatasource?.name ?? firstDatasourceId.slice(0, 8);
+        const storageDir = process.env.QWERY_STORAGE_DIR ?? 'qwery.db';
+        datasourceSystemContext = await buildDatasourceSystemContext(
+          firstDatasourceId,
+          dsName,
+          storageDir,
+        ).catch(() => '');
+        datasourceContextCache.set(firstDatasourceId, datasourceSystemContext);
+        logger.info(
+          `[session] datasource context length: ${datasourceSystemContext.length} chars for ${dsName}`,
+        );
+      }
+    }
+
+    const finalSystemPrompt = datasourceSystemContext
+      ? `${systemPromptWithSuggestions}\n\n${datasourceSystemContext}`
+      : systemPromptWithSuggestions;
+
     const result = await LLM.stream({
       model,
       messages: messagesForLlm,
       tools,
       maxSteps: inputMaxSteps ?? agentInfo.steps ?? 5,
       abortSignal: abortController.signal,
-      systemPrompt: systemPromptWithSuggestions,
+      systemPrompt: finalSystemPrompt,
       onFinish: closeMcp
         ? async () => {
             await closeMcp();
@@ -481,6 +686,47 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
         } catch (error) {
           const log = await getLogger();
           log.error('[AgentSession] Failed to persist usage:', error);
+        }
+
+        // Store token usage in internal DB (fire-and-forget)
+        {
+          const raw = (totalUsage ?? {}) as {
+            inputTokens?: number;
+            outputTokens?: number;
+            reasoningTokens?: number;
+            cachedInputTokens?: number;
+          };
+          const inputTokens = raw.inputTokens ?? 0;
+          const outputTokens = raw.outputTokens ?? 0;
+          if (inputTokens > 0 || outputTokens > 0) {
+            const datasourceIdForTokens =
+              (sharedExtra.attachedDatasources as string[] | undefined)?.[0] ?? null;
+            console.info(
+              `[AgentSession] storing tokens model=${providerModel.id} in=${inputTokens} out=${outputTokens}`,
+            );
+            getTokenStore()
+              .then((ts) => {
+                if (!ts) return;
+                return ts.store({
+                  id: uuidv4(),
+                  conversationId,
+                  datasourceId: datasourceIdForTokens,
+                  modelId: providerModel.id,
+                  providerId: providerModel.providerID,
+                  inputTokens,
+                  outputTokens,
+                  reasoningTokens: raw.reasoningTokens ?? 0,
+                  cachedTokens: raw.cachedInputTokens ?? 0,
+                });
+              })
+              .catch((err: unknown) =>
+                console.warn('[TokenStore] store failed:', err),
+              );
+          } else {
+            console.warn(
+              `[AgentSession] totalUsage has 0 tokens for model=${providerModel.id} — provider may not report usage`,
+            );
+          }
         }
 
         const lastAssistant = [...messagesWithToolExecution]
@@ -544,6 +790,110 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
             `[AgentSession] Assistant message persistence threw for ${conversationSlug}:`,
             error instanceof Error ? error.message : String(error),
           );
+        }
+
+        // Store query trace (fire-and-forget — does not block response)
+        const queryPlan = sharedExtra.lastQueryPlan as
+          | { intent: string; complexity: number }
+          | undefined;
+        const resolvedFields = sharedExtra.lastResolvedFields as
+          | Array<{ field_id: string; label: string; sql: string }>
+          | undefined;
+        const lastQuestion = sharedExtra.lastQuestion as string | undefined;
+        const lastRunQueryResult = sharedExtra.lastRunQueryResult as
+          | { current: { columns: string[]; rows: unknown[] } | null }
+          | undefined;
+        const correctionTrace = sharedExtra.lastCorrectionTrace as
+          | { correctedSQL?: string }
+          | undefined;
+
+        if (queryPlan && resolvedFields && lastQuestion && lastRunQueryResult?.current) {
+          const result = lastRunQueryResult.current;
+          getTraceStore()
+            .then((ts) => {
+              if (!ts) return;
+              const datasourceId =
+                (sharedExtra.attachedDatasources as string[])[0] ?? '';
+              return ts.store({
+                id: uuidv4(),
+                datasourceId,
+                question: lastQuestion,
+                keywords: (sharedExtra.lastKeywords as string[] | undefined) ?? [],
+                fieldsUsed: resolvedFields.map((f) => ({
+                  field_id: f.field_id,
+                  label: f.label,
+                  sql: f.sql,
+                })),
+                sqlFinal:
+                  correctionTrace?.correctedSQL ??
+                  (sharedExtra.lastFinalSQL as string | undefined) ??
+                  '',
+                resultShape: {
+                  columns: result.columns ?? [],
+                  row_count: result.rows?.length ?? 0,
+                },
+                intent: queryPlan.intent,
+                complexity: queryPlan.complexity,
+                pathUsed: 2,
+                correctionApplied: correctionTrace ?? null,
+                success: true,
+              });
+            })
+            .catch((err: unknown) =>
+              console.error('[AgentSession] trace store failed:', err),
+            );
+        }
+
+        // Patch semantic layer from successful corrections (fire-and-forget via hook)
+        if (_postQueryHook && correctionTrace && resolvedFields) {
+          const datasourceId =
+            (sharedExtra.attachedDatasources as string[])[0] ?? '';
+          try {
+            _postQueryHook(
+              datasourceId,
+              correctionTrace as Record<string, unknown>,
+              resolvedFields,
+            );
+          } catch (err) {
+            console.error('[AgentSession] post-query hook failed:', err);
+          }
+        }
+
+        // Enrich semantic layer from every successful query (fire-and-forget)
+        if (
+          _enrichmentAgent &&
+          lastRunQueryResult?.current &&
+          queryPlan &&
+          lastQuestion
+        ) {
+          const datasourceId =
+            (sharedExtra.attachedDatasources as string[])[0] ?? '';
+          const sqlFinal =
+            (correctionTrace?.correctedSQL as string | undefined) ??
+            (sharedExtra.lastFinalSQL as string | undefined) ??
+            '';
+          if (sqlFinal) {
+            _enrichmentAgent
+              .analyse({
+                datasourceId,
+                question: lastQuestion,
+                sqlFinal,
+                fieldsUsed: (resolvedFields ?? []).map((f) => ({
+                  field_id: f.field_id,
+                  label: f.label,
+                  sql: f.sql ?? '',
+                })),
+                queryPlan: queryPlan as {
+                  intent: string;
+                  cotPlan?: string;
+                  complexity: number;
+                },
+                correctionTrace: correctionTrace as Record<string, unknown> | null,
+              })
+              .catch((err: unknown) =>
+                console.error('[AgentSession] enrichment agent failed:', err),
+              );
+          }
         }
       },
     });
@@ -614,20 +964,22 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
       : '';
 
     if (!shouldGenerateTitle || !userMessageText) {
+      const base = wrapStreamWithRealtimeFlush(streamResponse.body);
       responseToReturn = new Response(
-        wrapStreamWithRealtimeFlush(streamResponse.body),
-        {
-          headers: SSE_HEADERS,
-        },
+        benchmarkMode ? wrapBenchmarkEarlyExit(base, abortController) : base,
+        { headers: SSE_HEADERS },
       );
       break;
     }
 
     const conv = conversation;
     const baseStream = wrapStreamWithRealtimeFlush(streamResponse.body);
+    const serveStream = benchmarkMode
+      ? wrapBenchmarkEarlyExit(baseStream, abortController)
+      : baseStream;
     const stream = new ReadableStream({
       async start(controller) {
-        const reader = baseStream.getReader();
+        const reader = serveStream.getReader();
         const decoder = new TextDecoder();
 
         try {

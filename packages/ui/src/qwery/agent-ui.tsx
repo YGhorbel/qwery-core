@@ -49,6 +49,7 @@ import {
   XIcon,
   ArrowDownIcon,
   PencilIcon,
+  BrainIcon,
 } from 'lucide-react';
 import { Button } from '../shadcn/button';
 import { Textarea } from '../shadcn/textarea';
@@ -2004,16 +2005,15 @@ function QweryAgentUIContent(props: QweryAgentUIProps) {
                         className="mt-1 shrink-0"
                       />
                       <div className="flex-end flex w-full max-w-[80%] min-w-0 flex-col justify-start gap-2 overflow-x-hidden">
-                        <Message
-                          from="assistant"
-                          className="w-full max-w-full min-w-0"
-                        >
-                          <MessageContent className="max-w-full min-w-0 overflow-x-hidden">
-                            <div className="overflow-wrap-anywhere flex min-w-0 flex-wrap items-baseline gap-x-0.5 gap-y-1 break-words">
-                              <MessageResponse></MessageResponse>
-                            </div>
-                          </MessageContent>
-                        </Message>
+                        <div className="flex items-center gap-2 py-1 text-sm">
+                          <BrainIcon className="text-muted-foreground size-4 shrink-0" />
+                          <span className="text-muted-foreground">Thinking</span>
+                          <div className="flex items-center gap-1">
+                            <span className="bg-primary/60 h-1.5 w-1.5 animate-pulse rounded-full" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+                            <span className="bg-primary/60 h-1.5 w-1.5 animate-pulse rounded-full" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+                            <span className="bg-primary/60 h-1.5 w-1.5 animate-pulse rounded-full" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

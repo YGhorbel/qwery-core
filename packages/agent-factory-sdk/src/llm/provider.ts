@@ -4,6 +4,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { createOllama } from 'ai-sdk-ollama';
 
 import modelsManifest from '../../models.json';
 
@@ -31,6 +32,7 @@ const BUNDLED_PROVIDERS: Record<string, CreateProvider> = {
   '@ai-sdk/openai': createOpenAI as unknown as CreateProvider,
   '@ai-sdk/openai-compatible':
     createOpenAICompatible as unknown as CreateProvider,
+  'ai-sdk-ollama': createOllama as unknown as CreateProvider,
 };
 
 type ManifestModel = {
@@ -142,6 +144,7 @@ async function getSDK(model: Model): Promise<SDKWithLanguageModel> {
     options.includeUsage = true;
   }
 
+
   if (model.api.npm === '@ai-sdk/azure' && provider.env.length >= 2) {
     const resourceName =
       typeof process !== 'undefined' && provider.env[0]
@@ -153,6 +156,7 @@ async function getSDK(model: Model): Promise<SDKWithLanguageModel> {
         : undefined;
     if (resourceName) options.resourceName = resourceName;
     if (apiKey !== undefined && apiKey !== '') options.apiKey = apiKey;
+    options.useDeploymentBasedUrls = true;
   } else {
     const envKey = provider.env[0];
     const apiKey =
@@ -160,6 +164,22 @@ async function getSDK(model: Model): Promise<SDKWithLanguageModel> {
         ? process.env[envKey]
         : undefined;
     if (apiKey !== undefined && apiKey !== '') options.apiKey = apiKey;
+  }
+
+  // Ollama Cloud uses the OpenAI-compatible endpoint — suppress specificationVersion
+  // warnings and strip OpenAI-specific fields that Ollama rejects.
+  if (
+    model.api.npm === '@ai-sdk/openai' &&
+    typeof model.api.url === 'string' &&
+    model.api.url.includes('ollama.com')
+  ) {
+    options.compatibility = 'compatible';
+  }
+
+  // Local Ollama (ai-sdk-ollama native path): allow env override of the host URL.
+  if (model.api.npm === 'ai-sdk-ollama') {
+    const localUrl = process.env['OLLAMA_LOCAL_URL'];
+    if (localUrl) options.baseURL = localUrl;
   }
 
   const key = sdkCacheKey(model.providerID, model.api.npm, options);
@@ -244,7 +264,13 @@ export const Provider = {
     const cached = languageModelsCache.get(key);
     if (cached) return cached;
     const sdk = await getSDK(model);
-    const language = sdk.languageModel(model.api.id) as LanguageModel;
+    // @ai-sdk v3 changed provider(id) / languageModel(id) to default to the
+    // Responses API. Force Chat Completions for Azure and custom OpenAI endpoints.
+    const language = (
+      model.api.npm === '@ai-sdk/azure' || (model.api.npm === '@ai-sdk/openai' && model.api.url)
+        ? (sdk as unknown as { chat(id: string): LanguageModel }).chat(model.api.id)
+        : sdk.languageModel(model.api.id)
+    ) as LanguageModel;
     languageModelsCache.set(key, language);
     return language;
   },

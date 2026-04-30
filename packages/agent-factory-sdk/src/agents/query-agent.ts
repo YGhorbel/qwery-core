@@ -7,6 +7,6 @@ export const QueryAgent = Agent.define('query', {
   description: 'Data and query-focused agent for executing and analyzing data.',
   mode: 'main',
   steps: 100,
-  options: {},
-  systemPrompt: [BASE_AGENT_PROMPT, FINAL_ANSWER_PROMPT].join('\n\n'),
+  options: { toolDenylist: ['getSchema'] },
+  systemPrompt: [FINAL_ANSWER_PROMPT, BASE_AGENT_PROMPT].join('\n\n'),
 });

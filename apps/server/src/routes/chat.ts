@@ -39,6 +39,25 @@ async function getRepositories(): Promise<Repositories> {
   return repositoriesPromise;
 }
 
+const SYSTEM_REMINDER_PATTERN = /<system-reminder>[\s\S]*?<\/system-reminder>/gi;
+const INJECTION_TAG_PATTERN = /<(instruction|prompt|directive|system)[^>]*>[\s\S]*?<\/\1>/gi;
+const ZERO_WIDTH_PATTERN = /[​-‍﻿]/g;
+const SUGGESTION_DDL_PATTERN = /\b(DROP|DELETE|TRUNCATE|INSERT|UPDATE|ALTER|CREATE|EXEC|EXECUTE)\b/gi;
+
+function sanitizeUserMessage(content: string): string {
+  return content
+    .replace(SYSTEM_REMINDER_PATTERN, '')
+    .replace(INJECTION_TAG_PATTERN, '')
+    .replace(ZERO_WIDTH_PATTERN, '')
+    .trim();
+}
+
+function sanitizeSuggestion(text: string): string {
+  SUGGESTION_DDL_PATTERN.lastIndex = 0;
+  if (SUGGESTION_DDL_PATTERN.test(text)) return '';
+  return text.slice(0, 120);
+}
+
 export function createChatRoutes() {
   const app = new Hono();
 
@@ -51,7 +70,11 @@ export function createChatRoutes() {
         const { slug } = c.req.valid('param');
         const body = c.req.valid('json');
         const messages = body.messages as UIMessage[];
-        const model = body.model ?? getDefaultModel();
+        // If the server has an explicit DEFAULT_MODEL configured, always use it.
+        // This prevents a client-stored model (e.g. azure/gpt-5.2-chat from a previous
+        // session) from overriding the server operator's provider choice.
+        const serverDefault = getDefaultModel();
+        const model = process.env.DEFAULT_MODEL ? serverDefault : (body.model ?? serverDefault);
 
         const repositories = await getRepositories();
         if (body.trigger === 'regenerate-message') {
@@ -77,6 +100,19 @@ export function createChatRoutes() {
 
         const processedMessages = messages.map(
           (message: UIMessage, index: number) => {
+            // Strip injected system tags from all user messages before they reach the LLM
+            if (normalizeUIRole(message.role) === 'user' && Array.isArray(message.parts)) {
+              message = {
+                ...message,
+                parts: message.parts.map((part) => {
+                  if (part.type === 'text' && 'text' in part) {
+                    return { ...part, text: sanitizeUserMessage((part as { type: 'text'; text: string }).text) };
+                  }
+                  return part;
+                }),
+              };
+            }
+
             const isLastUserMessage =
               normalizeUIRole(message.role) === 'user' &&
               index === messages.length - 1;
@@ -126,9 +162,10 @@ export function createChatRoutes() {
                 if (text.includes(guidanceMarker)) {
                   const endIndex = text.indexOf(guidanceEndMarker);
                   if (endIndex !== -1) {
-                    const cleanText = text
+                    const rawText = text
                       .substring(endIndex + guidanceEndMarker.length)
                       .trim();
+                    const cleanText = sanitizeSuggestion(rawText) || rawText.replace(/\b(DROP|DELETE|TRUNCATE|INSERT|UPDATE|ALTER|CREATE|EXEC|EXECUTE)\b/gi, '[removed]');
 
                     const suggestionGuidance = `[SUGGESTION WORKFLOW GUIDANCE]
 - This is a suggested next step from a previous response - execute it directly and efficiently
@@ -165,6 +202,8 @@ User request: ${cleanText}`;
           process.env.QWERY_MCP_SERVER_URL ??
           `${new URL(c.req.url).origin}/mcp`;
 
+        const benchmarkMode = c.req.header('X-Benchmark-Mode') === 'true';
+
         const response = await prompt({
           conversationSlug: slug,
           messages: validatedMessages,
@@ -175,6 +214,7 @@ User request: ${cleanText}`;
           telemetry,
           generateTitle: true,
           mcpServerUrl,
+          benchmarkMode,
         });
 
         return response;

@@ -208,10 +208,20 @@ export function createProjectsRoutes(
         );
 
       const repos = await getRepositories();
-      const useCase = isUUID(id)
-        ? new GetProjectService(repos.project)
-        : new GetProjectBySlugService(repos.project);
-      const project = await useCase.execute(id);
+
+      if (isUUID(id)) {
+        const project = await new GetProjectService(repos.project).execute(id);
+        return c.json(project);
+      }
+
+      // Non-UUID identifiers may be nanoid/CUID project IDs or slugs —
+      // try findById first, then fall back to slug lookup.
+      const byId = await repos.project.findById(id);
+      if (byId) return c.json(ProjectOutput.new(byId));
+
+      const project = await new GetProjectBySlugService(
+        repos.project,
+      ).execute(id);
       return c.json(project);
     } catch (error) {
       return handleDomainException(error);

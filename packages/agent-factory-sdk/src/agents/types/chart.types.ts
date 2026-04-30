@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+const HexColor = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a 6-digit hex value (e.g. #8884d8)');
+
 /**
  * Chart types supported by the system.
  * To add new chart types, simply add them to this array.
@@ -27,10 +31,10 @@ export type ChartTypeSelection = z.infer<typeof ChartTypeSelectionSchema>;
 
 export const ChartConfigSchema = z.object({
   chartType: ChartTypeSchema,
-  title: z.string().optional(),
+  title: z.string().max(80).optional(),
   data: z.array(z.record(z.string(), z.unknown())),
   config: z.object({
-    colors: z.array(z.string()),
+    colors: z.array(HexColor).min(1).max(10),
     labels: z.record(z.string(), z.string()).optional(),
     xKey: z.string().optional(),
     yKey: z.string().optional(),
@@ -43,9 +47,9 @@ export type ChartConfig = z.infer<typeof ChartConfigSchema>;
 
 export const ChartConfigTemplateSchema = z.object({
   chartType: ChartTypeSchema,
-  title: z.string().optional(),
+  title: z.string().max(80).optional(),
   config: z.object({
-    colors: z.array(z.string()),
+    colors: z.array(HexColor).min(1).max(10),
     labels: z.record(z.string(), z.string()).optional(),
     xKey: z.string().optional(),
     yKey: z.string().optional(),
